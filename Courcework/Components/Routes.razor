@@ -1,0 +1,20 @@
+﻿<Router AppAssembly="typeof(MauiProgram).Assembly" PreferExactMatches="true">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="typeof(Layout.MainLayout)">
+            <div style="padding: 2rem; text-align: center;">
+                <MudText Typo="Typo.h4">Page Not Found</MudText>
+                <MudText Typo="Typo.body2">Sorry, the page you're looking for doesn't exist.</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => NavigationManager.NavigateTo("/login"))" Class="mt-4">
+                    Return to Login
+                </MudButton>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>
+
+@code {
+    [Inject] NavigationManager NavigationManager { get; set; }
+}

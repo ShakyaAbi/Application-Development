@@ -1,0 +1,123 @@
+﻿@page "/calendar"
+
+<MudStack Spacing="4" Class="page-stack">
+    <MudPaper Class="calendar-header" Elevation="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" />
+            <MudText Typo="Typo.h5"><strong>December 2025</strong></MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
+        </MudStack>
+    </MudPaper>
+
+    <MudPaper Class="calendar-container" Elevation="2">
+        <div class="calendar-grid">
+            @foreach (var day in new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" })
+            {
+                <div class="calendar-day-header">
+                    <strong>@day</strong>
+                </div>
+            }
+            @foreach (var date in Enumerable.Range(1, 31))
+            {
+                <div class="calendar-day">
+                    <MudText Typo="Typo.body2">@date</MudText>
+                </div>
+            }
+        </div>
+    </MudPaper>
+
+    <MudPaper Class="entries-list" Elevation="2">
+        <MudText Typo="Typo.h6" GutterBottom="true"><strong>Recent Entries</strong></MudText>
+        <MudStack Spacing="2">
+            @foreach (var entry in new[] 
+            {
+                (Date: "December 20", Title: "Morning reflections", Mood: "Calm"),
+                (Date: "December 19", Title: "Project wrap-up", Mood: "Grateful"),
+                (Date: "December 18", Title: "Midweek check-in", Mood: "Stressed")
+            })
+            {
+                <div class="entry-item">
+                    <div>
+                        <MudText Typo="Typo.body2"><strong>@entry.Title</strong></MudText>
+                        <MudText Typo="Typo.caption" Class="muted">@entry.Date</MudText>
+                    </div>
+                    <MudChip T="string" Value="@entry.Mood" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
+                        @entry.Mood
+                    </MudChip>
+                </div>
+            }
+        </MudStack>
+    </MudPaper>
+</MudStack>
+
+@code {
+}
+
+<style>
+.page-stack {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.calendar-header {
+    padding: 1.5rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(25, 118, 210, 0.08), rgba(25, 118, 210, 0.04));
+}
+
+.calendar-container {
+    padding: 2rem;
+    border-radius: 12px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.75rem;
+}
+
+.calendar-day-header {
+    text-align: center;
+    padding: 0.5rem;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.7);
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    padding: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.calendar-day:hover {
+    background: rgba(25, 118, 210, 0.05);
+    border-color: rgba(25, 118, 210, 0.3);
+}
+
+.entries-list {
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-top: 2rem;
+}
+
+.entry-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.entry-item:hover {
+    background: rgba(25, 118, 210, 0.03);
+}
+</style>

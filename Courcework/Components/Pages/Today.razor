@@ -1,0 +1,167 @@
+﻿@page "/today"
+
+<MudStack Spacing="4" Class="page-stack">
+    <!-- Date Navigation Header -->
+    <MudPaper Class="date-navigation" Elevation="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" />
+            
+            <div style="text-align: center; flex: 1;">
+                <MudText Typo="Typo.h6">Saturday, December 20, 2025</MudText>
+                <MudText Typo="Typo.caption" Class="muted">Saturday</MudText>
+            </div>
+            
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
+        </MudStack>
+    </MudPaper>
+
+    <!-- Quick Mood Selector -->
+    <MudPaper Class="mood-selector" Elevation="3">
+        <MudText Typo="Typo.body2" Class="mb-3" GutterBottom="true"><strong>How are you feeling?</strong></MudText>
+        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+            @foreach (var mood in new[] { "Happy", "Calm", "Stressed", "Grateful", "Curious" })
+            {
+                <MudButton Variant="Variant.Outlined" 
+                           Color="Color.Primary" 
+                           Size="Size.Small"
+                           Class="mood-button">
+                    @mood
+                </MudButton>
+            }
+        </MudStack>
+    </MudPaper>
+
+    <!-- Entry Content -->
+    <MudPaper Class="entry-content" Elevation="3">
+        <MudStack Spacing="3">
+            <MudTextField T="string" 
+                         Label="Title (optional)" 
+                         Placeholder="Give your entry a title..."
+                         Variant="Variant.Outlined"
+                         FullWidth="true" />
+            
+            <MudTextField T="string"
+                         Label="Write your thoughts..."
+                         Placeholder="What's on your mind?"
+                         Lines="10"
+                         Variant="Variant.Outlined"
+                         FullWidth="true" />
+        </MudStack>
+    </MudPaper>
+
+    <!-- Category & Tags -->
+    <MudPaper Class="category-tags" Elevation="3">
+        <MudStack Spacing="3">
+            <div>
+                <MudText Typo="Typo.body2" GutterBottom="true"><strong>Category</strong></MudText>
+                <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+                    <MudButton>Personal</MudButton>
+                    <MudButton>Work</MudButton>
+                    <MudButton>Health</MudButton>
+                </MudButtonGroup>
+            </div>
+
+            <div>
+                <MudText Typo="Typo.caption" Class="muted mb-3"><strong>Tags</strong></MudText>
+                <MudChipSet T="string">
+                    @foreach (var tag in new[] { "Reflection", "Work", "Gratitude", "Ideas", "Health" })
+                    {
+                        <MudChip T="string"
+                                Value="@tag"
+                                Variant="Variant.Outlined"
+                                Class="tag-chip">
+                            @tag
+                        </MudChip>
+                    }
+                </MudChipSet>
+            </div>
+        </MudStack>
+    </MudPaper>
+
+    <!-- Action Buttons -->
+    <MudStack Row="true" Spacing="2" Class="action-buttons">
+        <MudButton Variant="Variant.Filled" 
+                  Color="Color.Primary" 
+                  FullWidth="true"
+                  Size="Size.Large"
+                  Class="save-button">
+            Save Entry
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" 
+                  Color="Color.Secondary" 
+                  FullWidth="true"
+                  Size="Size.Large"
+                  Class="delete-button">
+            Delete
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+@code {
+}
+
+<style>
+.page-stack {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.date-navigation {
+    padding: 2rem 1.5rem;
+    background: linear-gradient(135deg, rgba(25, 118, 210, 0.08), rgba(25, 118, 210, 0.04));
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.mood-selector {
+    padding: 2rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.mood-button {
+    padding: 0.75rem 1.25rem !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+}
+
+.mood-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(25, 118, 210, 0.2) !important;
+}
+
+.entry-content {
+    padding: 2rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.category-tags {
+    padding: 2rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.tag-chip {
+    padding: 0.5rem 1rem !important;
+    border-radius: 8px !important;
+}
+
+.action-buttons {
+    padding: 1rem 0;
+}
+
+.save-button, .delete-button {
+    border-radius: 10px !important;
+    padding: 0.75rem 1.5rem !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    transition: all 0.3s ease !important;
+}
+
+.save-button:hover, .delete-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
+}
+</style>

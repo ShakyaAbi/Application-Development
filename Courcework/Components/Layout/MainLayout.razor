@@ -1,0 +1,128 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+
+<MudThemeProvider Theme="@_customTheme" IsDarkMode="@_isDark" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<CascadingValue Value="this">
+<MudLayout>
+    <MudAppBar Elevation="1" Color="Color.Primary">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
+        <MudText Typo="Typo.h6" Class="ml-2"><strong>Reflections</strong></MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Inherit" OnClick="@(() => Navigation.NavigateTo("/profile"))" />
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="1" Variant="DrawerVariant.Temporary">
+        <MudDrawerHeader>
+            <div>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+                    <MudText Typo="Typo.h6"><strong>Reflections</strong></MudText>
+                </MudStack>
+                <MudText Typo="Typo.caption" Class="muted">Capture your thoughts and moments</MudText>
+            </div>
+        </MudDrawerHeader>
+        
+        <MudNavMenu>
+            @foreach (var item in _navItems)
+            {
+                <MudNavLink Href="@item.Href" Icon="@item.Icon" Match="NavLinkMatch.All">
+                    @item.Label
+                </MudNavLink>
+            }
+        </MudNavMenu>
+
+        <MudDivider Class="my-2" />
+        
+        <div class="px-4 py-2">
+            <MudText Typo="Typo.caption" Class="muted mb-2">Theme</MudText>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+                <MudIcon Icon="@(_isDark ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Size="Size.Small" />
+                <MudText Typo="Typo.caption">Dark Mode</MudText>
+                <MudSpacer />
+                <MudToggleIconButton Toggled="@_isDark" ToggledChanged="@((bool x) => ToggleTheme(x))" 
+                                     Icon="@Icons.Material.Filled.LightMode" ToggledIcon="@Icons.Material.Filled.DarkMode" 
+                                     Size="Size.Small" />
+            </MudStack>
+        </div>
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.False" Class="body-container">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+</CascadingValue>
+
+@code {
+    private bool _drawerOpen = false;
+    private bool _isDark = false;
+    private string _currentPageTitle = "Dashboard";
+    private bool _redirectedToLogin = false;
+
+    // Custom blue and white theme
+    private MudTheme _customTheme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#1976d2",
+            Secondary = "#64b5f6",
+            Tertiary = "#42a5f5",
+            Success = "#4caf50",
+            Warning = "#ff9800",
+            Error = "#f44336",
+            Info = "#2196f3",
+            Dark = "#212121"
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#1976d2",
+            Secondary = "#64b5f6",
+            Tertiary = "#42a5f5",
+            Success = "#4caf50",
+            Warning = "#ff9800",
+            Error = "#f44336",
+            Info = "#2196f3",
+            Dark = "#1e1e1e"
+        }
+    };
+
+    private readonly List<NavItem> _navItems =
+    [
+        new("Dashboard", "/dashboard", Icons.Material.Filled.Dashboard),
+        new("Today", "/today", Icons.Material.Filled.EditCalendar),
+        new("Calendar", "/calendar", Icons.Material.Filled.Event),
+        new("Timeline", "/timeline", Icons.Material.Filled.ViewTimeline),
+        new("Profile", "/profile", Icons.Material.Filled.Person),
+        new("Logout", "/login", Icons.Material.Filled.Logout)
+    ];
+
+    protected override void OnInitialized()
+    {
+        // Redirect to login on initial app load
+        var currentUri = Navigation.Uri;
+        if (!_redirectedToLogin && (currentUri.EndsWith("/") || currentUri.EndsWith("index.html")))
+        {
+            _redirectedToLogin = true;
+            Navigation.NavigateTo("/login", replace: true);
+        }
+    }
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private void ToggleTheme(bool isDark)
+    {
+        _isDark = isDark;
+        StateHasChanged();
+    }
+
+    public void UpdatePageTitle(string title)
+    {
+        _currentPageTitle = title;
+        StateHasChanged();
+    }
+
+    private record NavItem(string Label, string Href, string Icon);
+}

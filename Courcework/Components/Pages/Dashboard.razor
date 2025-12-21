@@ -1,0 +1,255 @@
+﻿@page "/dashboard"
+
+<MudPaper Class="dashboard-hero" Elevation="4">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <div>
+            <MudText Typo="Typo.h3" Class="hero-title"><strong>Reflections Dashboard</strong></MudText>
+            <MudText Typo="Typo.subtitle1" Class="muted">Your journaling insights at a glance.</MudText>
+        </div>
+        <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">
+            Analytics
+        </MudChip>
+    </MudStack>
+</MudPaper>
+
+<MudStack Spacing="4" Class="page-stack">
+    <!-- Summary Cards -->
+    <MudGrid Spacing="3">
+        @foreach (var card in _summaryCards)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="summary-card" Elevation="3">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.caption" Class="muted">@card.Label</MudText>
+                        <MudText Typo="Typo.h4"><strong>@card.Value</strong></MudText>
+                        <MudProgressLinear Value="@card.Progress" Color="Color.Primary" Class="progress-bar" />
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+
+    <!-- Charts Row -->
+    <MudGrid Spacing="3">
+        <!-- Weekly Activity Chart -->
+        <MudItem xs="12">
+            <MudPaper Class="chart-paper" Elevation="3">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Activity by Day</strong></MudText>
+                <div class="chart-container">
+                    <MudChart ChartType="ChartType.Line" 
+                             ChartSeries="@ActivityChartSeries" 
+                             XAxisLabels="@XAxisLabels"
+                             Width="100%"
+                             Height="300px" />
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Tags and Word Count Row -->
+    <MudGrid Spacing="3">
+        <!-- Top Tags -->
+        <MudItem xs="12" md="4">
+            <MudPaper Class="tags-paper" Elevation="3">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Top Tags</strong></MudText>
+                <MudChipSet T="string" Class="tags-chipset">
+                    @foreach (var tag in _topTags)
+                    {
+                        <MudChip T="string" Value="@tag.Tag" Color="Color.Secondary" Variant="Variant.Outlined" Class="tag-item">
+                            @tag.Tag <strong>(@tag.Count)</strong>
+                        </MudChip>
+                    }
+                </MudChipSet>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Word Count Trend -->
+        <MudItem xs="12" md="8">
+            <MudPaper Class="chart-paper" Elevation="3">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Word Count Trend</strong></MudText>
+                <div class="chart-container">
+                    <MudChart ChartType="ChartType.Bar" 
+                             ChartSeries="@WordCountChartSeries" 
+                             XAxisLabels="@XAxisLabels"
+                             Width="100%"
+                             Height="300px" />
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Recent Entries -->
+    <MudPaper Class="recent-entries-paper" Elevation="3">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Recent Entries</strong></MudText>
+        <MudSimpleTable Style="overflow-x: auto;" Class="recent-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Title</th>
+                    <th>Mood</th>
+                    <th>Preview</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var entry in _recentEntries)
+                {
+                    <tr>
+                        <td>
+                            <MudText Typo="Typo.body2">@entry.Date</MudText>
+                        </td>
+                        <td>
+                            <MudText Typo="Typo.body2">
+                                <strong>@entry.Title</strong>
+                            </MudText>
+                        </td>
+                        <td>
+                            <MudChip T="string" Value="@entry.PrimaryMood" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" Class="mood-chip">
+                                @entry.PrimaryMood
+                            </MudChip>
+                        </td>
+                        <td>
+                            <MudText Typo="Typo.body2">@entry.Snippet</MudText>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+</MudStack>
+
+<style>
+.dashboard-hero {
+    padding: 2.5rem 2rem;
+    margin-bottom: 2rem;
+    background: linear-gradient(135deg, #1976d2, #1565c0);
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(25, 118, 210, 0.25);
+}
+
+.hero-title {
+    color: white;
+}
+
+.page-stack {
+    padding: 1rem;
+}
+
+.summary-card {
+    padding: 1.75rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.progress-bar {
+    border-radius: 4px !important;
+    height: 6px !important;
+}
+
+.chart-paper {
+    padding: 1.75rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.chart-container {
+    margin: 1.5rem 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.tags-paper {
+    padding: 1.75rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.tags-chipset {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.tag-item {
+    padding: 0.5rem 1rem !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+}
+
+.tag-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.recent-entries-paper {
+    padding: 1.75rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.recent-table {
+    border-radius: 8px;
+}
+
+.recent-table thead {
+    background: rgba(25, 118, 210, 0.05);
+}
+
+.recent-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.recent-table tbody tr:hover {
+    background: rgba(25, 118, 210, 0.03);
+}
+
+.mood-chip {
+    border-radius: 6px !important;
+}
+</style>
+
+@code {
+    private readonly List<(string Label, string Value, int Progress)> _summaryCards = new()
+    {
+        ("Entries", "142", 80),
+        ("Current Streak", "5 days", 60),
+        ("Top Mood", "Calm", 70),
+        ("Total Words", "14,200", 75)
+    };
+
+    private readonly List<(string Tag, int Count)> _topTags = new()
+    {
+        ("Reflection", 18),
+        ("Work", 15),
+        ("Gratitude", 14),
+        ("Ideas", 10),
+        ("Health", 8)
+    };
+
+    private readonly List<(string Date, string Title, string PrimaryMood, string Snippet)> _recentEntries = new()
+    {
+        ("12/20/2025", "Morning reflections", "Calm", "Quick thoughts about the day."),
+        ("12/19/2025", "Project wrap-up", "Grateful", "Celebrated shipping the release."),
+        ("12/18/2025", "Midweek check-in", "Stressed", "Lots of meetings, but made progress.")
+    };
+
+    private List<ChartSeries> ActivityChartSeries => new()
+    {
+        new ChartSeries { Name = "Activity Level", Data = new double[] { 40, 55, 35, 70, 65, 45, 30 } }
+    };
+
+    private List<ChartSeries> WordCountChartSeries => new()
+    {
+        new ChartSeries { Name = "Words Written", Data = new double[] { 9, 10.5, 7.6, 12, 9.8, 6.5, 7 } }
+    };
+
+    private string[] XAxisLabels => new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+}
