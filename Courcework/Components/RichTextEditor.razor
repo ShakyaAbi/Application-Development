@@ -1,0 +1,75 @@
+@using System.Collections.Generic
+@inject IJSRuntime JS
+
+<div class="rich-editor-container">
+    <h3>Write Content</h3>
+    <div id="editor" style="height: 200px; background: white;"></div>
+    <button @onclick="Save">Save</button>
+    <pre>@HtmlContent</pre>
+</div>
+
+@code {
+    private string HtmlContent = "";
+
+    [Parameter]
+    public string Content { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ContentChanged { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Initialize Quill editor
+                await JS.InvokeVoidAsync("initQuill", "editor");
+                System.Diagnostics.Debug.WriteLine("Quill editor initialized");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            // Get HTML from Quill editor
+            HtmlContent = await JS.InvokeAsync<string>("getQuillHtml");
+            Content = HtmlContent;
+            await ContentChanged.InvokeAsync(Content);
+            System.Diagnostics.Debug.WriteLine($"Saved content: {HtmlContent}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error saving: {ex.Message}");
+        }
+    }
+}
+
+<style>
+.rich-editor-container {
+    width: 100%;
+    padding: 1rem;
+}
+
+/* Quill Snow Theme Customization */
+:deep(.ql-toolbar.ql-snow) {
+    border: 1px solid #ccc;
+    border-radius: 4px 4px 0 0;
+}
+
+:deep(.ql-container.ql-snow) {
+    border: 1px solid #ccc;
+    border-radius: 0 0 4px 4px;
+}
+
+:deep(.ql-editor) {
+    min-height: 200px;
+    font-family: "Poppins", sans-serif;
+}
+</style>

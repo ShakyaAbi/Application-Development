@@ -1,0 +1,308 @@
+@inject IStorageService Storage
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudPaper Class="tag-manager-card" Elevation="3">
+    <MudStack Spacing="3">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Manage Tags</strong></MudText>
+        
+        <!-- Create New Tag Section -->
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.subtitle2">Create New Tag</MudText>
+            
+            <MudStack Row="true" Spacing="2" Style="align-items: flex-end;">
+                <MudTextField @bind-Value="_newTagName"
+                              Label="Tag Name"
+                              Placeholder="e.g., Work, Personal, Ideas"
+                              Variant="Variant.Outlined"
+                              Style="flex: 1; min-width: 200px;"
+                              Disabled="@_isLoading" />
+                
+                <MudStack Row="true" Spacing="1" Style="align-items: flex-end;">
+                    <div class="color-picker-wrapper">
+                        <input type="color" 
+                               @bind="_newTagColor" 
+                               class="color-picker-input"
+                               disabled="@_isLoading" />
+                    </div>
+                    <MudText Typo="Typo.caption" Class="color-text">@_newTagColor</MudText>
+                </MudStack>
+                
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="@CreateTag"
+                           Disabled="@(_isLoading || string.IsNullOrWhiteSpace(_newTagName))"
+                           StartIcon="@Icons.Material.Filled.Add">
+                    @if (_isLoading)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="ms-n1 me-2" />
+                        <span>Creating...</span>
+                    }
+                    else
+                    {
+                        <span>Create Tag</span>
+                    }
+                </MudButton>
+            </MudStack>
+
+            @if (!string.IsNullOrEmpty(_validationError))
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mt-2">
+                    @_validationError
+                </MudAlert>
+            }
+        </MudStack>
+
+        <MudDivider />
+
+        <!-- Tags List Section -->
+        <MudText Typo="Typo.subtitle2">Your Tags (@_tags.Count)</MudText>
+
+        @if (_tags.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled">
+                No tags yet. Create your first tag to organize your journal entries!
+            </MudAlert>
+        }
+        else
+        {
+            <MudStack Spacing="2">
+                @foreach (var tag in _tags)
+                {
+                    <div class="tag-item">
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Style="justify-content: space-between;">
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                <span class="tag-color-indicator" style="background-color: @tag.Color;"></span>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2"><strong>@tag.Name</strong></MudText>
+                                    <MudText Typo="Typo.caption" Class="muted">@tag.Color</MudText>
+                                </MudStack>
+                            </MudStack>
+                            
+                            <MudStack Row="true" Spacing="1">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                              Size="Size.Small"
+                                              Disabled="@_isLoading"
+                                              OnClick="@(() => EditTag(tag))"
+                                              Class="tag-action-btn" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                              Size="Size.Small"
+                                              Color="Color.Error"
+                                              Disabled="@_isLoading"
+                                              OnClick="@(() => DeleteTag(tag.Id))"
+                                              Class="tag-action-btn" />
+                            </MudStack>
+                        </MudStack>
+                    </div>
+                }
+            </MudStack>
+        }
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public EventCallback OnTagsChanged { get; set; }
+
+    private List<Tag> _tags = new();
+    private string _newTagName = string.Empty;
+    private string _newTagColor = "#1976d2";
+    private bool _isLoading = false;
+    private string _validationError = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTags();
+    }
+
+    private async Task LoadTags()
+    {
+        try
+        {
+            var result = await Storage.GetAllTagsAsync();
+            if (result.Success)
+            {
+                _tags = result.Data ?? new();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading tags: {ex.Message}");
+            Snackbar.Add("Failed to load tags", Severity.Error);
+        }
+    }
+
+    private async Task CreateTag()
+    {
+        try
+        {
+            _validationError = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(_newTagName))
+            {
+                _validationError = "Tag name cannot be empty";
+                return;
+            }
+
+            if (_newTagName.Length > 50)
+            {
+                _validationError = "Tag name must be 50 characters or less";
+                return;
+            }
+
+            if (_tags.Any(t => t.Name.Equals(_newTagName, StringComparison.OrdinalIgnoreCase)))
+            {
+                _validationError = "A tag with this name already exists";
+                return;
+            }
+
+            _isLoading = true;
+
+            var result = await Storage.AddTagAsync(_newTagName, _newTagColor);
+
+            if (result.Success)
+            {
+                _tags.Add(result.Data);
+                _newTagName = string.Empty;
+                _newTagColor = "#1976d2";
+                Snackbar.Add($"Tag '{result.Data.Name}' created successfully!", Severity.Success);
+                await OnTagsChanged.InvokeAsync();
+            }
+            else
+            {
+                _validationError = result.ErrorMessage ?? "Failed to create tag";
+                Snackbar.Add(_validationError, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error creating tag: {ex.Message}");
+            _validationError = "An unexpected error occurred";
+            Snackbar.Add("Failed to create tag", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task EditTag(Tag tag)
+    {
+        Snackbar.Add("Tag editing coming soon!", Severity.Info);
+        await Task.CompletedTask;
+    }
+
+    private async Task DeleteTag(Guid tagId)
+    {
+        try
+        {
+            _isLoading = true;
+            var tag = _tags.FirstOrDefault(t => t.Id == tagId);
+            
+            if (tag == null)
+                return;
+
+            var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete the tag '{tag.Name}'?");
+            if (!confirmed)
+                return;
+
+            _tags.Remove(tag);
+            Snackbar.Add($"Tag '{tag.Name}' deleted", Severity.Success);
+            await OnTagsChanged.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error deleting tag: {ex.Message}");
+            Snackbar.Add("Failed to delete tag", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
+
+<style>
+.tag-manager-card {
+    padding: 1.75rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.color-picker-wrapper {
+    border: 1px solid rgba(0, 0, 0, 0.23);
+    border-radius: 4px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.color-picker-input {
+    width: 44px;
+    height: 44px;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.color-text {
+    color: rgba(0, 0, 0, 0.6);
+    min-width: 80px;
+}
+
+.tag-item {
+    padding: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.tag-item:hover {
+    background-color: rgba(25, 118, 210, 0.03);
+    border-color: rgba(25, 118, 210, 0.3);
+}
+
+:deep(.mud-dark .tag-item:hover) {
+    background-color: rgba(100, 181, 246, 0.1) !important;
+    border-color: rgba(100, 181, 246, 0.5) !important;
+}
+
+.tag-color-indicator {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tag-action-btn {
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.tag-action-btn:hover:not(:disabled) {
+    opacity: 1;
+}
+
+:deep(.mud-dark .tag-item) {
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+:deep(.mud-dark .color-picker-wrapper) {
+    border-color: rgba(255, 255, 255, 0.23) !important;
+}
+
+:deep(.mud-dark .color-text) {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.muted {
+    opacity: 0.7;
+}
+
+.mt-2 {
+    margin-top: 0.5rem;
+}
+</style>

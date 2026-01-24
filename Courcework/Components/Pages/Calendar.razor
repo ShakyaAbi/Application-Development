@@ -1,11 +1,13 @@
 ﻿@page "/calendar"
+@inject IStorageService Storage
+@inject NavigationManager Navigation
 
 <MudStack Spacing="4" Class="page-stack">
     <MudPaper Class="calendar-header" Elevation="3">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" />
-            <MudText Typo="Typo.h5"><strong>December 2025</strong></MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" OnClick="@PreviousMonth" />
+            <MudText Typo="Typo.h5"><strong>@_currentDate.ToString("MMMM yyyy")</strong></MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" OnClick="@NextMonth" />
         </MudStack>
     </MudPaper>
 
@@ -17,40 +19,122 @@
                     <strong>@day</strong>
                 </div>
             }
-            @foreach (var date in Enumerable.Range(1, 31))
+            @foreach (var dateNum in GetDaysInMonth())
             {
-                <div class="calendar-day">
-                    <MudText Typo="Typo.body2">@date</MudText>
-                </div>
+                if (dateNum == 0)
+                {
+                    <div class="calendar-day-empty"></div>
+                }
+                else
+                {
+                    var date = new DateOnly(_currentDate.Year, _currentDate.Month, dateNum);
+                    var hasEntry = _monthEntries.Any(e => e.Date == date);
+                    
+                    <div class="@($"calendar-day {(hasEntry ? "has-entry" : "empty-date")}")" 
+                         @onclick="@(() => NavigateToDate(date))">
+                        <MudText Typo="Typo.body2">@dateNum</MudText>
+                        @if (hasEntry)
+                        {
+                            <div class="entry-indicator"></div>
+                        }
+                    </div>
+                }
             }
         </div>
     </MudPaper>
 
     <MudPaper Class="entries-list" Elevation="2">
-        <MudText Typo="Typo.h6" GutterBottom="true"><strong>Recent Entries</strong></MudText>
-        <MudStack Spacing="2">
-            @foreach (var entry in new[] 
-            {
-                (Date: "December 20", Title: "Morning reflections", Mood: "Calm"),
-                (Date: "December 19", Title: "Project wrap-up", Mood: "Grateful"),
-                (Date: "December 18", Title: "Midweek check-in", Mood: "Stressed")
-            })
-            {
-                <div class="entry-item">
-                    <div>
-                        <MudText Typo="Typo.body2"><strong>@entry.Title</strong></MudText>
-                        <MudText Typo="Typo.caption" Class="muted">@entry.Date</MudText>
+        <MudText Typo="Typo.h6" GutterBottom="true"><strong>Entries in @_currentDate.ToString("MMMM")</strong></MudText>
+        @if (_monthEntries.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="muted">No entries this month. <MudLink Href="/today">Start journaling!</MudLink></MudText>
+        }
+        else
+        {
+            <MudStack Spacing="2">
+                @foreach (var entry in _monthEntries.OrderByDescending(e => e.Date))
+                {
+                    <div class="entry-item">
+                        <div>
+                            <MudText Typo="Typo.body2"><strong>@(string.IsNullOrEmpty(entry.Title) ? "Untitled" : entry.Title)</strong></MudText>
+                            <MudText Typo="Typo.caption" Class="muted">@entry.Date.ToString("dddd, MMMM dd, yyyy")</MudText>
+                        </div>
+                        <MudStack Row="true" Spacing="1">
+                            <MudChip T="string" Value="@entry.Mood" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
+                                @(string.IsNullOrEmpty(entry.Mood) ? "—" : entry.Mood)
+                            </MudChip>
+                            @if (!string.IsNullOrEmpty(entry.SecondaryMood))
+                            {
+                                <MudChip T="string" Value="@entry.SecondaryMood" Color="Color.Secondary" Variant="Variant.Filled" Size="Size.Small">
+                                    @entry.SecondaryMood
+                                </MudChip>
+                            }
+                        </MudStack>
                     </div>
-                    <MudChip T="string" Value="@entry.Mood" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
-                        @entry.Mood
-                    </MudChip>
-                </div>
-            }
-        </MudStack>
+                }
+            </MudStack>
+        }
     </MudPaper>
 </MudStack>
 
 @code {
+    private DateOnly _currentDate;
+    private List<JournalEntry> _monthEntries = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Storage.InitializeAsync();
+        _currentDate = DateOnly.FromDateTime(DateTime.Today);
+        await LoadMonthEntries();
+    }
+
+    private async Task LoadMonthEntries()
+    {
+        var result = await Storage.GetEntriesByMonthAsync(_currentDate.Year, _currentDate.Month);
+        if (result.Success)
+        {
+            _monthEntries = result.Data ?? new();
+        }
+    }
+
+    private List<int> GetDaysInMonth()
+    {
+        var daysInMonth = DateTime.DaysInMonth(_currentDate.Year, _currentDate.Month);
+        var firstDay = new DateTime(_currentDate.Year, _currentDate.Month, 1).DayOfWeek;
+        var days = new List<int>();
+
+        // Add empty days for days before month starts
+        for (int i = 0; i < (int)firstDay; i++)
+        {
+            days.Add(0);
+        }
+
+        // Add days of the month
+        for (int i = 1; i <= daysInMonth; i++)
+        {
+            days.Add(i);
+        }
+
+        return days;
+    }
+
+    private void PreviousMonth()
+    {
+        _currentDate = _currentDate.AddMonths(-1);
+        _ = LoadMonthEntries();
+    }
+
+    private void NextMonth()
+    {
+        _currentDate = _currentDate.AddMonths(1);
+        _ = LoadMonthEntries();
+    }
+
+    private void NavigateToDate(DateOnly date)
+    {
+        // Navigate to Today page with the selected date
+        Navigation.NavigateTo($"/today?date={date:yyyy-MM-dd}");
+    }
 }
 
 <style>
@@ -84,6 +168,10 @@
     color: rgba(0, 0, 0, 0.7);
 }
 
+.calendar-day-empty {
+    aspect-ratio: 1;
+}
+
 .calendar-day {
     aspect-ratio: 1;
     padding: 1rem;
@@ -94,11 +182,34 @@
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
+    position: relative;
 }
 
 .calendar-day:hover {
     background: rgba(25, 118, 210, 0.05);
     border-color: rgba(25, 118, 210, 0.3);
+    transform: scale(1.05);
+}
+
+.calendar-day.has-entry {
+    background: rgba(25, 118, 210, 0.08);
+    border-color: rgba(25, 118, 210, 0.3);
+    font-weight: 600;
+}
+
+.calendar-day.empty-date:hover {
+    background: rgba(76, 175, 80, 0.08);
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+.entry-indicator {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    width: 8px;
+    height: 8px;
+    background: #1976d2;
+    border-radius: 50%;
 }
 
 .entries-list {
@@ -119,5 +230,9 @@
 
 .entry-item:hover {
     background: rgba(25, 118, 210, 0.03);
+}
+
+.muted {
+    opacity: 0.7;
 }
 </style>

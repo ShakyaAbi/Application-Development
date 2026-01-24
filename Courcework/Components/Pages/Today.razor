@@ -1,33 +1,80 @@
 ﻿@page "/today"
+@inject IStorageService Storage
+@inject NavigationManager Navigation
 
 <MudStack Spacing="4" Class="page-stack">
+    <!-- Alert Messages -->
+    @if (!string.IsNullOrEmpty(_successMessage))
+    {
+        <MudAlert Severity="Severity.Success" Variant="Variant.Filled" CloseButton="true" OnClose="@(() => _successMessage = "")">
+            @_successMessage
+        </MudAlert>
+    }
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" CloseButton="true" OnClose="@(() => _errorMessage = "")">
+            @_errorMessage
+        </MudAlert>
+    }
+
     <!-- Date Navigation Header -->
     <MudPaper Class="date-navigation" Elevation="3">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" />
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" OnClick="@PreviousDay" />
             
             <div style="text-align: center; flex: 1;">
-                <MudText Typo="Typo.h6">Saturday, December 20, 2025</MudText>
-                <MudText Typo="Typo.caption" Class="muted">Saturday</MudText>
+                <MudText Typo="Typo.h6">@_currentDate.ToString("dddd, MMMM dd, yyyy")</MudText>
+                <MudText Typo="Typo.caption" Class="muted">@_currentDate.ToString("dddd")</MudText>
             </div>
             
-            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" OnClick="@NextDay" />
         </MudStack>
     </MudPaper>
 
     <!-- Quick Mood Selector -->
     <MudPaper Class="mood-selector" Elevation="3">
-        <MudText Typo="Typo.body2" Class="mb-3" GutterBottom="true"><strong>How are you feeling?</strong></MudText>
-        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
-            @foreach (var mood in new[] { "Happy", "Calm", "Stressed", "Grateful", "Curious" })
-            {
-                <MudButton Variant="Variant.Outlined" 
-                           Color="Color.Primary" 
-                           Size="Size.Small"
-                           Class="mood-button">
-                    @mood
-                </MudButton>
-            }
+        <MudStack Spacing="3">
+            <!-- Primary Mood -->
+            <div>
+                <MudText Typo="Typo.body2" Class="mb-2" GutterBottom="true"><strong>Primary Mood</strong></MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    @foreach (var mood in new[] { "Happy", "Calm", "Stressed", "Grateful", "Curious" })
+                    {
+                        <MudButton Variant="@(_currentEntry?.Mood == mood ? Variant.Filled : Variant.Outlined)" 
+                                   Color="Color.Primary" 
+                                   Size="Size.Small"
+                                   Class="mood-button"
+                                   OnClick="@(() => { if (_currentEntry != null) { _currentEntry.Mood = mood; StateHasChanged(); } })">
+                            @mood
+                        </MudButton>
+                    }
+                </MudStack>
+            </div>
+
+            <!-- Secondary Mood -->
+            <div>
+                <MudText Typo="Typo.body2" Class="mb-2" GutterBottom="true"><strong>Secondary Mood (optional)</strong></MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    <MudButton Variant="@(string.IsNullOrEmpty(_currentEntry?.SecondaryMood) ? Variant.Filled : Variant.Outlined)"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               Class="mood-button"
+                               OnClick="@(() => { if (_currentEntry != null) _currentEntry.SecondaryMood = ""; StateHasChanged(); })">
+                        None
+                    </MudButton>
+                    @foreach (var mood in new[] { "Hopeful", "Anxious", "Melancholic", "Energetic", "Peaceful" })
+                    {
+                        <MudButton Variant="@(_currentEntry?.SecondaryMood == mood ? Variant.Filled : Variant.Outlined)" 
+                                   Color="Color.Secondary" 
+                                   Size="Size.Small"
+                                   Class="mood-button"
+                                   OnClick="@(() => { if (_currentEntry != null) { _currentEntry.SecondaryMood = mood; StateHasChanged(); } })">
+                            @mood
+                        </MudButton>
+                    }
+                </MudStack>
+            </div>
         </MudStack>
     </MudPaper>
 
@@ -35,17 +82,38 @@
     <MudPaper Class="entry-content" Elevation="3">
         <MudStack Spacing="3">
             <MudTextField T="string" 
+                         @bind-Value="_currentEntry.Title"
                          Label="Title (optional)" 
                          Placeholder="Give your entry a title..."
                          Variant="Variant.Outlined"
                          FullWidth="true" />
             
-            <MudTextField T="string"
-                         Label="Write your thoughts..."
-                         Placeholder="What's on your mind?"
-                         Lines="10"
-                         Variant="Variant.Outlined"
-                         FullWidth="true" />
+            <!-- Toggle for Rich Text -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudText Typo="Typo.caption"><strong>Use Rich Text</strong></MudText>
+                <MudToggleIconButton @bind-Toggled="_useRichText"
+                                    Icon="@Icons.Material.Filled.TextFields"
+                                    ToggledIcon="@Icons.Material.Filled.FormatColorText"
+                                    Size="Size.Small"
+                                    Title="Toggle rich text editor" />
+            </MudStack>
+
+            @if (_useRichText)
+            {
+                <!-- Rich Text Editor -->
+                <RichTextEditor Content="@_currentEntry.Content" ContentChanged="@((string content) => _currentEntry.Content = content)" />
+            }
+            else
+            {
+                <!-- Plain Text Editor -->
+                <MudTextField T="string"
+                             @bind-Value="_currentEntry.Content"
+                             Label="Write your thoughts..."
+                             Placeholder="What's on your mind?"
+                             Lines="10"
+                             Variant="Variant.Outlined"
+                             FullWidth="true" />
+            }
         </MudStack>
     </MudPaper>
 
@@ -55,25 +123,30 @@
             <div>
                 <MudText Typo="Typo.body2" GutterBottom="true"><strong>Category</strong></MudText>
                 <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
-                    <MudButton>Personal</MudButton>
-                    <MudButton>Work</MudButton>
-                    <MudButton>Health</MudButton>
+                    @foreach (var category in new[] { "Personal", "Work", "Health" })
+                    {
+                        <MudButton Variant="@(_currentEntry?.Category == category ? Variant.Filled : Variant.Outlined)"
+                                   OnClick="@(() => { if (_currentEntry != null) _currentEntry.Category = category; })">
+                            @category
+                        </MudButton>
+                    }
                 </MudButtonGroup>
             </div>
 
             <div>
                 <MudText Typo="Typo.caption" Class="muted mb-3"><strong>Tags</strong></MudText>
-                <MudChipSet T="string">
-                    @foreach (var tag in new[] { "Reflection", "Work", "Gratitude", "Ideas", "Health" })
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                    @foreach (var tag in _availableTags)
                     {
-                        <MudChip T="string"
-                                Value="@tag"
-                                Variant="Variant.Outlined"
-                                Class="tag-chip">
-                            @tag
-                        </MudChip>
+                        <MudButton Variant="@(_currentEntry.Tags?.Contains(tag.Name) == true ? Variant.Filled : Variant.Outlined)"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   Class="tag-button"
+                                   OnClick="@(() => ToggleTag(tag.Name))">
+                            @tag.Name
+                        </MudButton>
                     }
-                </MudChipSet>
+                </MudStack>
             </div>
         </MudStack>
     </MudPaper>
@@ -84,20 +157,173 @@
                   Color="Color.Primary" 
                   FullWidth="true"
                   Size="Size.Large"
-                  Class="save-button">
+                  Class="save-button"
+                  OnClick="@SaveEntry"
+                  Disabled="@string.IsNullOrWhiteSpace(_currentEntry?.Content)">
             Save Entry
         </MudButton>
         <MudButton Variant="Variant.Outlined" 
                   Color="Color.Secondary" 
                   FullWidth="true"
                   Size="Size.Large"
-                  Class="delete-button">
+                  Class="delete-button"
+                  OnClick="@DeleteEntry"
+                  Disabled="@(_currentEntry?.Id == Guid.Empty)">
             Delete
         </MudButton>
     </MudStack>
 </MudStack>
 
 @code {
+    private JournalEntry _currentEntry = new();
+    private DateOnly _currentDate;
+    private List<Tag> _availableTags = new();
+    private string _successMessage = "";
+    private string _errorMessage = "";
+    private bool _useRichText = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Storage.InitializeAsync();
+        
+        // Check for date parameter from URL
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var queryString = uri.Query;
+        if (!string.IsNullOrEmpty(queryString) && queryString.Contains("date="))
+        {
+            var dateStr = ExtractQueryParam(queryString, "date");
+            if (!string.IsNullOrEmpty(dateStr) && DateOnly.TryParse(dateStr, out var parsedDate))
+            {
+                _currentDate = parsedDate;
+            }
+            else
+            {
+                _currentDate = DateOnly.FromDateTime(DateTime.Today);
+            }
+        }
+        else
+        {
+            _currentDate = DateOnly.FromDateTime(DateTime.Today);
+        }
+        
+        // Load available tags
+        var tagsResult = await Storage.GetAllTagsAsync();
+        if (tagsResult.Success)
+        {
+            _availableTags = tagsResult.Data ?? new();
+        }
+        else
+        {
+            _errorMessage = tagsResult.ErrorMessage ?? "Failed to load tags";
+        }
+
+        await LoadEntryForDate();
+    }
+
+    private string ExtractQueryParam(string query, string paramName)
+    {
+        var param = $"{paramName}=";
+        var index = query.IndexOf(param);
+        if (index < 0) return null;
+        
+        var startIndex = index + param.Length;
+        var endIndex = query.IndexOf("&", startIndex);
+        if (endIndex < 0) endIndex = query.Length;
+        
+        return query.Substring(startIndex, endIndex - startIndex);
+    }
+
+    private async Task LoadEntryForDate()
+    {
+        var result = await Storage.GetEntryByDateAsync(_currentDate);
+        
+        if (!result.Success)
+        {
+            _errorMessage = result.ErrorMessage ?? "Failed to load entry";
+            _currentEntry = new() { Id = Guid.NewGuid(), Date = _currentDate, Tags = new() };
+            return;
+        }
+
+        _currentEntry = result.Data ?? new() { Id = Guid.NewGuid(), Date = _currentDate, Tags = new() };
+        _useRichText = _currentEntry.IsRichText;
+    }
+
+    private async Task SaveEntry()
+    {
+        if (string.IsNullOrWhiteSpace(_currentEntry.Content))
+        {
+            _errorMessage = "Content is required";
+            return;
+        }
+
+        _currentEntry.Date = _currentDate;
+        _currentEntry.IsRichText = _useRichText;
+        var result = await Storage.SaveEntryAsync(_currentEntry);
+        
+        if (result.Success)
+        {
+            _successMessage = "Entry saved successfully!";
+            _errorMessage = "";
+        }
+        else
+        {
+            _errorMessage = result.ErrorMessage ?? "Failed to save entry";
+            _successMessage = "";
+        }
+    }
+
+    private async Task DeleteEntry()
+    {
+        if (_currentEntry?.Id == Guid.Empty)
+        {
+            _errorMessage = "No entry to delete";
+            return;
+        }
+
+        var result = await Storage.DeleteEntryAsync(_currentEntry.Id);
+        
+        if (result.Success)
+        {
+            _successMessage = "Entry deleted successfully!";
+            _errorMessage = "";
+            _currentEntry = new() { Id = Guid.NewGuid(), Date = _currentDate, Tags = new() };
+            _useRichText = false;
+        }
+        else
+        {
+            _errorMessage = result.ErrorMessage ?? "Failed to delete entry";
+            _successMessage = "";
+        }
+    }
+
+    private void PreviousDay()
+    {
+        _currentDate = _currentDate.AddDays(-1);
+        _ = LoadEntryForDate();
+    }
+
+    private void NextDay()
+    {
+        _currentDate = _currentDate.AddDays(1);
+        _ = LoadEntryForDate();
+    }
+
+    private void ToggleTag(string tagName)
+    {
+        if (_currentEntry.Tags == null)
+        {
+            _currentEntry.Tags = new();
+        }
+
+        if (_currentEntry.Tags.Contains(tagName))
+        {
+            _currentEntry.Tags.Remove(tagName);
+        }
+        else
+        {
+            _currentEntry.Tags.Add(tagName);
+        }
+    }
 }
 
 <style>
@@ -114,10 +340,20 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
+:deep(.mud-dark .date-navigation) {
+    background: linear-gradient(135deg, rgba(100, 181, 246, 0.1), rgba(100, 181, 246, 0.05)) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
 .mood-selector {
     padding: 2rem 1.5rem;
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+:deep(.mud-dark .mood-selector) {
+    background-color: #424242 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
 }
 
 .mood-button {
@@ -131,10 +367,19 @@
     box-shadow: 0 6px 20px rgba(25, 118, 210, 0.2) !important;
 }
 
+:deep(.mud-dark .mood-button:hover) {
+    box-shadow: 0 6px 20px rgba(100, 181, 246, 0.3) !important;
+}
+
 .entry-content {
     padding: 2rem 1.5rem;
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+:deep(.mud-dark .entry-content) {
+    background-color: #424242 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
 }
 
 .category-tags {
@@ -143,7 +388,12 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
-.tag-chip {
+:deep(.mud-dark .category-tags) {
+    background-color: #424242 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+.tag-button {
     padding: 0.5rem 1rem !important;
     border-radius: 8px !important;
 }
@@ -163,5 +413,18 @@
 .save-button:hover, .delete-button:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
+}
+
+:deep(.mud-dark .save-button:hover),
+:deep(.mud-dark .delete-button:hover) {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+.muted {
+    opacity: 0.7;
+}
+
+.mb-3 {
+    margin-bottom: 1rem;
 }
 </style>
