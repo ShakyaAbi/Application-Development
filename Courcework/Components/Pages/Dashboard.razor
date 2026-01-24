@@ -1,4 +1,6 @@
 ﻿@page "/dashboard"
+@inject IStorageService Storage
+@inject IJSRuntime JS
 
 <MudPaper Class="dashboard-hero" Elevation="4">
     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
@@ -15,105 +17,214 @@
 <MudStack Spacing="4" Class="page-stack">
     <!-- Summary Cards -->
     <MudGrid Spacing="3">
-        @foreach (var card in _summaryCards)
-        {
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="summary-card" Elevation="3">
-                    <MudStack Spacing="2">
-                        <MudText Typo="Typo.caption" Class="muted">@card.Label</MudText>
-                        <MudText Typo="Typo.h4"><strong>@card.Value</strong></MudText>
-                        <MudProgressLinear Value="@card.Progress" Color="Color.Primary" Class="progress-bar" />
-                    </MudStack>
-                </MudPaper>
-            </MudItem>
-        }
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="summary-card" Elevation="3">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.caption" Class="muted">Total Entries</MudText>
+                    <MudText Typo="Typo.h4"><strong>@_totalEntries</strong></MudText>
+                    <MudProgressLinear Value="@Math.Min(_totalEntries, 100)" Color="Color.Primary" Class="progress-bar" />
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="summary-card" Elevation="3">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.caption" Class="muted">Current Streak</MudText>
+                    <MudText Typo="Typo.h4"><strong>@_currentStreak days</strong></MudText>
+                    <MudProgressLinear Value="@Math.Min(_currentStreak * 10, 100)" Color="Color.Success" Class="progress-bar" />
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="summary-card" Elevation="3">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.caption" Class="muted">Longest Streak</MudText>
+                    <MudText Typo="Typo.h4"><strong>@_longestStreak days</strong></MudText>
+                    <MudProgressLinear Value="@Math.Min(_longestStreak * 10, 100)" Color="Color.Warning" Class="progress-bar" />
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="summary-card" Elevation="3">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.caption" Class="muted">Total Words</MudText>
+                    <MudText Typo="Typo.h4"><strong>@_totalWords.ToString("N0")</strong></MudText>
+                    <MudProgressLinear Value="@Math.Min((_totalWords / 10000) * 100, 100)" Color="Color.Info" Class="progress-bar" />
+                </MudStack>
+            </MudPaper>
+        </MudItem>
     </MudGrid>
 
-    <!-- Charts Row -->
+    <!-- Charts Section -->
     <MudGrid Spacing="3">
-        <!-- Weekly Activity Chart -->
-        <MudItem xs="12">
+        <!-- Mood Distribution Chart -->
+        <MudItem xs="12" md="6">
             <MudPaper Class="chart-paper" Elevation="3">
-                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Activity by Day</strong></MudText>
+                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Mood Distribution</strong></MudText>
                 <div class="chart-container">
-                    <MudChart ChartType="ChartType.Line" 
-                             ChartSeries="@ActivityChartSeries" 
-                             XAxisLabels="@XAxisLabels"
-                             Width="100%"
-                             Height="300px" />
+                    <canvas id="moodChart"></canvas>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Writing Habits Chart -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="chart-paper" Elevation="3">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Writing Habits</strong></MudText>
+                <div class="chart-container">
+                    <canvas id="habitChart"></canvas>
                 </div>
             </MudPaper>
         </MudItem>
     </MudGrid>
 
-    <!-- Tags and Word Count Row -->
+    <!-- Detailed Stats -->
     <MudGrid Spacing="3">
-        <!-- Top Tags -->
-        <MudItem xs="12" md="4">
-            <MudPaper Class="tags-paper" Elevation="3">
-                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Top Tags</strong></MudText>
-                <MudChipSet T="string" Class="tags-chipset">
-                    @foreach (var tag in _topTags)
-                    {
-                        <MudChip T="string" Value="@tag.Tag" Color="Color.Secondary" Variant="Variant.Outlined" Class="tag-item">
-                            @tag.Tag <strong>(@tag.Count)</strong>
-                        </MudChip>
-                    }
-                </MudChipSet>
+        <!-- Streak Visualization -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="details-paper" Elevation="3">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Streak Performance</strong></MudText>
+                <MudStack Spacing="3" Class="mt-4">
+                    <div class="stat-row">
+                        <div class="stat-label">
+                            <MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment" Class="fire-icon"></MudIcon>
+                            <span>Current Streak</span>
+                        </div>
+                        <MudStack AlignItems="AlignItems.End">
+                            <MudText Typo="Typo.h5"><strong>@_currentStreak</strong></MudText>
+                            <MudText Typo="Typo.caption" Class="muted">days in a row</MudText>
+                        </MudStack>
+                    </div>
+
+                    <MudDivider />
+
+                    <div class="stat-row">
+                        <div class="stat-label">
+                            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Class="trophy-icon"></MudIcon>
+                            <span>Longest Streak</span>
+                        </div>
+                        <MudStack AlignItems="AlignItems.End">
+                            <MudText Typo="Typo.h5"><strong>@_longestStreak</strong></MudText>
+                            <MudText Typo="Typo.caption" Class="muted">best achievement</MudText>
+                        </MudStack>
+                    </div>
+
+                    <MudDivider />
+
+                    <div class="stat-row">
+                        <div class="stat-label">
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Class="trend-icon"></MudIcon>
+                            <span>Consistency Score</span>
+                        </div>
+                        <MudStack AlignItems="AlignItems.End">
+                            <MudText Typo="Typo.h5"><strong>@GetConsistencyScore()%</strong></MudText>
+                            <MudText Typo="Typo.caption" Class="muted">current vs best</MudText>
+                        </MudStack>
+                    </div>
+                </MudStack>
             </MudPaper>
         </MudItem>
 
-        <!-- Word Count Trend -->
-        <MudItem xs="12" md="8">
-            <MudPaper Class="chart-paper" Elevation="3">
-                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Word Count Trend</strong></MudText>
-                <div class="chart-container">
-                    <MudChart ChartType="ChartType.Bar" 
-                             ChartSeries="@WordCountChartSeries" 
-                             XAxisLabels="@XAxisLabels"
-                             Width="100%"
-                             Height="300px" />
-                </div>
+        <!-- Writing Stats -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="details-paper" Elevation="3">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Writing Statistics</strong></MudText>
+                <MudStack Spacing="3" Class="mt-4">
+                    <div class="stat-row">
+                        <div class="stat-label">
+                            <MudIcon Icon="@Icons.Material.Filled.EditNote" Class="note-icon"></MudIcon>
+                            <span>Avg Words per Entry</span>
+                        </div>
+                        <MudStack AlignItems="AlignItems.End">
+                            <MudText Typo="Typo.h5"><strong>@GetAverageWordsPerEntry()</strong></MudText>
+                            <MudText Typo="Typo.caption" Class="muted">words</MudText>
+                        </MudStack>
+                    </div>
+
+                    <MudDivider />
+
+                    <div class="stat-row">
+                        <div class="stat-label">
+                            <MudIcon Icon="@Icons.Material.Filled.DateRange" Class="date-icon"></MudIcon>
+                            <span>Entries per Month</span>
+                        </div>
+                        <MudStack AlignItems="AlignItems.End">
+                            <MudText Typo="Typo.h5"><strong>@GetEntriesPerMonth()</strong></MudText>
+                            <MudText Typo="Typo.caption" Class="muted">average</MudText>
+                        </MudStack>
+                    </div>
+
+                    <MudDivider />
+
+                    <div class="stat-row">
+                        <div class="stat-label">
+                            <MudIcon Icon="@Icons.Material.Filled.Timer" class="timer-icon"></MudIcon>
+                            <span>Writing Time Estimate</span>
+                        </div>
+                        <MudStack AlignItems="AlignItems.End">
+                            <MudText Typo="Typo.h5"><strong>~@GetEstimatedWritingTime()</strong></MudText>
+                            <MudText Typo="Typo.caption" Class="muted">hours</MudText>
+                        </MudStack>
+                    </div>
+                </MudStack>
             </MudPaper>
         </MudItem>
     </MudGrid>
 
-    <!-- Recent Entries -->
+    <!-- Recent Entries Table -->
     <MudPaper Class="recent-entries-paper" Elevation="3">
         <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Recent Entries</strong></MudText>
-        <MudSimpleTable Style="overflow-x: auto;" Class="recent-table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Title</th>
-                    <th>Mood</th>
-                    <th>Preview</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var entry in _recentEntries)
-                {
+        @if (_recentEntries.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled">
+                No entries yet. Start journaling to see your data!
+            </MudAlert>
+        }
+        else
+        {
+            <MudSimpleTable Style="overflow-x: auto;" Class="recent-table">
+                <thead>
                     <tr>
-                        <td>
-                            <MudText Typo="Typo.body2">@entry.Date</MudText>
-                        </td>
-                        <td>
-                            <MudText Typo="Typo.body2">
-                                <strong>@entry.Title</strong>
-                            </MudText>
-                        </td>
-                        <td>
-                            <MudChip T="string" Value="@entry.PrimaryMood" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" Class="mood-chip">
-                                @entry.PrimaryMood
-                            </MudChip>
-                        </td>
-                        <td>
-                            <MudText Typo="Typo.body2">@entry.Snippet</MudText>
-                        </td>
+                        <th>Date</th>
+                        <th>Title</th>
+                        <th>Primary Mood</th>
+                        <th>Secondary Mood</th>
+                        <th>Words</th>
                     </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
+                </thead>
+                <tbody>
+                    @foreach (var entry in _recentEntries)
+                    {
+                        <tr>
+                            <td>
+                                <MudText Typo="Typo.body2">@entry.Date.ToString("MMM dd, yyyy")</MudText>
+                            </td>
+                            <td>
+                                <MudText Typo="Typo.body2">
+                                    <strong>@(string.IsNullOrEmpty(entry.Title) ? "Untitled" : entry.Title)</strong>
+                                </MudText>
+                            </td>
+                            <td>
+                                <MudChip T="string" Value="@entry.Mood" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" Class="mood-chip">
+                                    @(string.IsNullOrEmpty(entry.Mood) ? "—" : entry.Mood)
+                                </MudChip>
+                            </td>
+                            <td>
+                                <MudChip T="string" Value="@entry.SecondaryMood" Color="Color.Secondary" Variant="Variant.Filled" Size="Size.Small" Class="mood-chip">
+                                    @(string.IsNullOrEmpty(entry.SecondaryMood) ? "—" : entry.SecondaryMood)
+                                </MudChip>
+                            </td>
+                            <td>
+                                <MudText Typo="Typo.body2">@GetWordCount(entry.Content)</MudText>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
     </MudPaper>
 </MudStack>
 
@@ -131,7 +242,13 @@
     color: white;
 }
 
+.muted {
+    opacity: 0.7;
+}
+
 .page-stack {
+    max-width: 1200px;
+    margin: 0 auto;
     padding: 1rem;
 }
 
@@ -147,6 +264,15 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
+:deep(.mud-dark .summary-card) {
+    background-color: #424242 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+:deep(.mud-dark .summary-card:hover) {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
 .progress-bar {
     border-radius: 4px !important;
     height: 6px !important;
@@ -158,41 +284,84 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.chart-container {
-    margin: 1.5rem 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+:deep(.mud-dark .chart-paper) {
+    background-color: #424242 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
-.tags-paper {
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin-top: 1rem;
+}
+
+.details-paper {
     padding: 1.75rem;
     border-radius: 10px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.tags-chipset {
+:deep(.mud-dark .details-paper) {
+    background-color: #424242 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.stat-row {
     display: flex;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat-label {
+    display: flex;
+    align-items: center;
     gap: 0.75rem;
-    margin-top: 1rem;
+    font-weight: 500;
 }
 
-.tag-item {
-    padding: 0.5rem 1rem !important;
-    border-radius: 8px !important;
-    transition: all 0.3s ease !important;
+.fire-icon {
+    color: #ff6b6b;
+    font-size: 24px;
 }
 
-.tag-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+.trophy-icon {
+    color: #ffd93d;
+    font-size: 24px;
+}
+
+.trend-icon {
+    color: #4caf50;
+    font-size: 24px;
+}
+
+.note-icon {
+    color: #1976d2;
+    font-size: 24px;
+}
+
+.date-icon {
+    color: #9c27b0;
+    font-size: 24px;
+}
+
+.timer-icon {
+    color: #ff9800;
+    font-size: 24px;
+}
+
+.mt-4 {
+    margin-top: 1.5rem;
 }
 
 .recent-entries-paper {
     padding: 1.75rem;
     border-radius: 10px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+:deep(.mud-dark .recent-entries-paper) {
+    background-color: #424242 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
 .recent-table {
@@ -203,6 +372,10 @@
     background: rgba(25, 118, 210, 0.05);
 }
 
+:deep(.mud-dark .recent-table thead) {
+    background: rgba(100, 181, 246, 0.15) !important;
+}
+
 .recent-table tbody tr {
     transition: background-color 0.2s ease;
 }
@@ -211,45 +384,122 @@
     background: rgba(25, 118, 210, 0.03);
 }
 
+:deep(.mud-dark .recent-table tbody tr:hover) {
+    background: rgba(100, 181, 246, 0.1) !important;
+}
+
 .mood-chip {
     border-radius: 6px !important;
 }
 </style>
 
 @code {
-    private readonly List<(string Label, string Value, int Progress)> _summaryCards = new()
-    {
-        ("Entries", "142", 80),
-        ("Current Streak", "5 days", 60),
-        ("Top Mood", "Calm", 70),
-        ("Total Words", "14,200", 75)
-    };
+    private int _totalEntries = 0;
+    private int _currentStreak = 0;
+    private int _longestStreak = 0;
+    private int _totalWords = 0;
+    private List<JournalEntry> _recentEntries = new();
+    private Dictionary<string, int> _moodStats = new();
+    private List<JournalEntry> _allEntries = new();
 
-    private readonly List<(string Tag, int Count)> _topTags = new()
+    protected override async Task OnInitializedAsync()
     {
-        ("Reflection", 18),
-        ("Work", 15),
-        ("Gratitude", 14),
-        ("Ideas", 10),
-        ("Health", 8)
-    };
+        await Storage.InitializeAsync();
+        await LoadDashboardData();
+    }
 
-    private readonly List<(string Date, string Title, string PrimaryMood, string Snippet)> _recentEntries = new()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        ("12/20/2025", "Morning reflections", "Calm", "Quick thoughts about the day."),
-        ("12/19/2025", "Project wrap-up", "Grateful", "Celebrated shipping the release."),
-        ("12/18/2025", "Midweek check-in", "Stressed", "Lots of meetings, but made progress.")
-    };
+        if (firstRender && _allEntries.Count > 0)
+        {
+            try
+            {
+                // Create mood chart
+                var moodLabels = _moodStats.Keys.ToList();
+                var moodData = _moodStats.Values.ToList();
+                await JS.InvokeVoidAsync("createMoodChart", "moodChart", moodLabels, moodData, "doughnut");
 
-    private List<ChartSeries> ActivityChartSeries => new()
+                // Create habit chart
+                var habitLabels = new[] { "Avg Words", "Entries/Month", "Consistency" };
+                var habitData = new[] { GetAverageWordsPerEntry(), GetEntriesPerMonth(), GetConsistencyScore() };
+                await JS.InvokeVoidAsync("createBarChart", "habitChart", habitLabels, habitData, "Writing Habits");
+
+                System.Diagnostics.Debug.WriteLine("Charts created successfully");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating charts: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task LoadDashboardData()
     {
-        new ChartSeries { Name = "Activity Level", Data = new double[] { 40, 55, 35, 70, 65, 45, 30 } }
-    };
+        // Load statistics
+        var statsResult = await Storage.GetStatisticsAsync();
+        if (statsResult.Success)
+        {
+            _totalEntries = statsResult.Data.TotalEntries;
+            _currentStreak = statsResult.Data.CurrentStreak;
+            _longestStreak = statsResult.Data.LongestStreak;
+        }
 
-    private List<ChartSeries> WordCountChartSeries => new()
+        // Load word count
+        var wordCountResult = await Storage.GetTotalWordCountAsync();
+        if (wordCountResult.Success)
+        {
+            _totalWords = wordCountResult.Data;
+        }
+
+        // Load all entries
+        var entriesResult = await Storage.GetAllEntriesAsync();
+        if (entriesResult.Success)
+        {
+            _allEntries = entriesResult.Data ?? new();
+            _recentEntries = _allEntries.Take(5).ToList();
+            
+            // Calculate mood statistics
+            _moodStats = _allEntries
+                .Where(e => !string.IsNullOrEmpty(e.Mood))
+                .GroupBy(e => e.Mood)
+                .OrderByDescending(g => g.Count())
+                .ToDictionary(g => g.Key, g => g.Count());
+        }
+    }
+
+    private int GetAverageWordsPerEntry()
     {
-        new ChartSeries { Name = "Words Written", Data = new double[] { 9, 10.5, 7.6, 12, 9.8, 6.5, 7 } }
-    };
+        if (_totalEntries == 0) return 0;
+        return _totalWords / _totalEntries;
+    }
 
-    private string[] XAxisLabels => new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+    private int GetEntriesPerMonth()
+    {
+        if (_totalEntries == 0) return 0;
+        if (_allEntries.Count < 2) return _totalEntries;
+        
+        var maxDate = _allEntries.Max(e => e.Date);
+        var minDate = _allEntries.Min(e => e.Date);
+        var daysDiff = maxDate.DayNumber - minDate.DayNumber;
+        var monthsActive = Math.Max(daysDiff / 30, 1);
+        return _totalEntries / monthsActive;
+    }
+
+    private int GetConsistencyScore()
+    {
+        if (_longestStreak == 0) return 0;
+        return Math.Min((int)((_currentStreak / (double)_longestStreak) * 100), 100);
+    }
+
+    private int GetEstimatedWritingTime()
+    {
+        // Estimate 5 minutes per 100 words
+        return _totalWords / 100 / 12; // 12 = 5 min per 100 words
+    }
+
+    private int GetWordCount(string content)
+    {
+        if (string.IsNullOrEmpty(content)) return 0;
+        return content.Split(new[] { ' ', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length;
+    }
 }

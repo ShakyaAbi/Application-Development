@@ -3,6 +3,7 @@ body, html {
     padding: 0;
     font-family: "Poppins", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     background: var(--mud-palette-background);
+    transition: background-color 0.3s ease !important;
 }
 
 #app {
@@ -13,6 +14,92 @@ body, html {
     opacity: 0.7;
 }
 
+/* Dark Mode Text Contrast */
+:deep(.mud-dark .mud-text-body2),
+:deep(.mud-dark .mud-typography-body2) {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+:deep(.mud-dark .mud-text-caption),
+:deep(.mud-dark .mud-typography-caption) {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+:deep(.mud-dark .mud-text-subtitle1),
+:deep(.mud-dark .mud-typography-subtitle1) {
+    color: rgba(255, 255, 255, 0.87) !important;
+}
+
+/* Card & Paper Styles Dark Mode */
+:deep(.mud-dark .mud-paper) {
+    background-color: #424242 !important;
+    color: rgba(255, 255, 255, 0.87) !important;
+}
+
+:deep(.mud-dark .mud-paper.mud-paper-outlined) {
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Table Dark Mode */
+:deep(.mud-dark table) {
+    background-color: #424242 !important;
+    color: rgba(255, 255, 255, 0.87) !important;
+}
+
+:deep(.mud-dark thead) {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+:deep(.mud-dark tbody tr) {
+    border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+:deep(.mud-dark tbody tr:hover) {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Divider Dark Mode */
+:deep(.mud-dark .mud-divider) {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Alert Dark Mode */
+:deep(.mud-dark .mud-alert) {
+    background-color: rgba(25, 118, 210, 0.15) !important;
+    color: #64b5f6 !important;
+}
+
+:deep(.mud-dark .mud-alert.mud-alert-error) {
+    background-color: rgba(244, 67, 54, 0.15) !important;
+    color: #ef9a9a !important;
+}
+
+:deep(.mud-dark .mud-alert.mud-alert-success) {
+    background-color: rgba(76, 175, 80, 0.15) !important;
+    color: #81c784 !important;
+}
+
+/* Chips Dark Mode */
+:deep(.mud-dark .mud-chip) {
+    background-color: rgba(25, 118, 210, 0.3) !important;
+    color: rgba(255, 255, 255, 0.87) !important;
+}
+
+:deep(.mud-dark .mud-chip.mud-chip-text) {
+    color: rgba(255, 255, 255, 0.87) !important;
+}
+
+/* Button Dark Mode */
+:deep(.mud-dark .mud-button-text) {
+    color: #64b5f6 !important;
+}
+
+:deep(.mud-dark .mud-button-text:hover) {
+    background-color: rgba(100, 181, 246, 0.08) !important;
+}
+
+/* Card Grid */
 .card-grid {
     display: grid;
     gap: 1rem;
@@ -31,6 +118,7 @@ body, html {
     line-height: 1.5;
 }
 
+/* Calendar Styles */
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -58,7 +146,6 @@ body, html {
     border-radius: 999px;
 }
 
-/* Dashboard polish */
 .stats-grid {
     margin-bottom: 0.5rem;
 }
@@ -91,29 +178,18 @@ body, html {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
-/* ============================================
-   GLOBAL INPUT STYLING - MudBlazor Components
-   ============================================
-   
-   Applies consistent, professional padding to all
-   input-like UI elements across the application.
-   Text is properly centered within fields with
-   comfortable spacing suitable for desktop usage.
-*/
-
-/* Base MudTextField padding */
+/* MudBlazor Input Styling */
 :deep(.mud-input-input-control) {
     padding: 0.75rem 0.875rem !important;
     font-size: 1rem !important;
     line-height: 1.5 !important;
+    transition: all 0.2s ease !important;
 }
 
-/* Outlined variant - ensures consistent appearance */
 :deep(.mud-input-outlined .mud-input-input-control) {
     padding: 0.75rem 0.875rem !important;
 }
 
-/* Textarea / multiline inputs */
 :deep(.mud-input-slot textarea) {
     padding: 0.75rem 0.875rem !important;
     font-size: 1rem !important;
@@ -121,90 +197,63 @@ body, html {
     font-family: "Poppins", "Segoe UI", monospace !important;
 }
 
-/* MudSelect inputs */
 :deep(.mud-input-control-margin-dense .mud-input-input-control) {
     padding: 0.75rem 0.875rem !important;
 }
 
-/* MudDatePicker input control */
 :deep(.mud-input-adornment-start) {
     margin-right: 0.5rem !important;
 }
 
-/* Ensure select dropdown triggers have proper padding */
 :deep(.mud-select .mud-input-input-control) {
     padding: 0.75rem 0.875rem !important;
 }
 
-/* Password input specific - maintain readability */
 :deep(input[type="password"]) {
     letter-spacing: 0.15em !important;
     padding: 0.75rem 0.875rem !important;
 }
 
-/* Search/filter inputs */
 :deep(.mud-input-slot input[type="search"]) {
     padding: 0.75rem 0.875rem !important;
 }
 
-/* Focus state - visual feedback */
 :deep(.mud-input-input-control:focus) {
     outline: none !important;
     box-shadow: inset 0 0 0 2px var(--mud-palette-primary) !important;
 }
 
-/* Placeholder text styling - readable contrast */
-:deep(.mud-input-input-control)::placeholder {
+input::placeholder {
     opacity: 0.6 !important;
     font-size: 0.95rem !important;
-    color: currentColor !important;
 }
 
-/* Label positioning for outlined inputs */
+textarea::placeholder {
+    opacity: 0.6 !important;
+    font-size: 0.95rem !important;
+}
+
 :deep(.mud-input-label) {
     padding-left: 0.25rem !important;
     font-size: 0.875rem !important;
 }
 
-/* Adornment spacing (icons) */
 :deep(.mud-input-adornment) {
     margin: 0 0.5rem !important;
 }
 
-/* Select menu items padding */
 :deep(.mud-list-item) {
     padding: 0.75rem 1rem !important;
     min-height: 40px !important;
 }
 
-/* Date range picker inputs */
 :deep(.mud-input-slot) {
     display: flex !important;
     align-items: center !important;
     padding: 0 !important;
 }
 
-/* Ensure text never touches border on all input types */
-:deep(.mud-input-input-control::-webkit-input-placeholder) {
-    padding: 0.75rem 0.875rem !important;
-}
-
-:deep(.mud-input-input-control:-moz-placeholder) {
-    padding: 0.75rem 0.875rem !important;
-}
-
-:deep(.mud-input-input-control::-moz-placeholder) {
-    padding: 0.75rem 0.875rem !important;
-}
-
-:deep(.mud-input-input-control:-ms-input-placeholder) {
-    padding: 0.75rem 0.875rem !important;
-}
-
-/* ============================================
-   LIGHT THEME - Input Styling Overrides
-   ============================================ */
-
+/* Light Theme */
 @media (prefers-color-scheme: light) {
     :deep(.mud-input-input-control) {
         color: rgba(0, 0, 0, 0.87) !important;
@@ -222,24 +271,22 @@ body, html {
         border-color: var(--mud-palette-primary) !important;
     }
 
-    :deep(.mud-input-input-control)::placeholder {
+    input::placeholder {
+        color: rgba(0, 0, 0, 0.5) !important;
+    }
+
+    textarea::placeholder {
         color: rgba(0, 0, 0, 0.5) !important;
     }
 
     :deep(.mud-input-label) {
         color: rgba(0, 0, 0, 0.7) !important;
     }
-
-    :deep(textarea)::placeholder {
-        color: rgba(0, 0, 0, 0.5) !important;
-    }
 }
 
-/* ============================================
-   DARK THEME - Input Styling Overrides
-   ============================================ */
-
-@media (prefers-color-scheme: dark) {
+/* Dark Theme */
+@media (prefers-color-scheme: dark),
+:deep(.mud-dark) {
     :deep(.mud-input-input-control) {
         color: rgba(255, 255, 255, 0.87) !important;
         background-color: rgba(255, 255, 255, 0.05) !important;
@@ -256,23 +303,20 @@ body, html {
         border-color: var(--mud-palette-primary) !important;
     }
 
-    :deep(.mud-input-input-control)::placeholder {
+    input::placeholder {
+        color: rgba(255, 255, 255, 0.5) !important;
+    }
+
+    textarea::placeholder {
         color: rgba(255, 255, 255, 0.5) !important;
     }
 
     :deep(.mud-input-label) {
         color: rgba(255, 255, 255, 0.7) !important;
     }
-
-    :deep(textarea)::placeholder {
-        color: rgba(255, 255, 255, 0.5) !important;
-    }
 }
 
-/* ============================================
-   DISABLED STATE - All Themes
-   ============================================ */
-
+/* Disabled State */
 :deep(.mud-input-input-control:disabled) {
     opacity: 0.5 !important;
     cursor: not-allowed !important;
@@ -282,20 +326,14 @@ body, html {
     opacity: 0.4 !important;
 }
 
-/* ============================================
-   ACCESSIBILITY - Focus Indicators
-   ============================================ */
-
+/* Accessibility */
 :deep(.mud-input-input-control:focus-visible) {
     outline: 2px solid var(--mud-palette-primary) !important;
     outline-offset: 2px !important;
     box-shadow: inset 0 0 0 2px var(--mud-palette-primary) !important;
 }
 
-/* ============================================
-   ERROR STATE - Input Styling
-   ============================================ */
-
+/* Error State */
 :deep(.mud-input.mud-input-error .mud-input-input-control) {
     border-color: var(--mud-palette-error) !important;
     background-color: rgba(244, 67, 54, 0.05) !important;
@@ -305,10 +343,7 @@ body, html {
     box-shadow: inset 0 0 0 2px var(--mud-palette-error) !important;
 }
 
-/* ============================================
-   SUCCESS STATE - Input Styling
-   ============================================ */
-
+/* Success State */
 :deep(.mud-input.mud-input-success .mud-input-input-control) {
     border-color: var(--mud-palette-success) !important;
     background-color: rgba(76, 175, 80, 0.05) !important;
@@ -318,10 +353,7 @@ body, html {
     box-shadow: inset 0 0 0 2px var(--mud-palette-success) !important;
 }
 
-/* ============================================
-   MODERN SHADOW STYLES - Elevation Effects
-   ============================================ */
-
+/* Shadow Styles */
 .shadow-sm {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
 }
@@ -351,163 +383,54 @@ body, html {
     transform: translateY(-2px) !important;
 }
 
-/* ============================================
-   MODERN PADDING SCALES
-   ============================================ */
+/* Padding Scales */
+.p-px { padding: 1px !important; }
+.p-0 { padding: 0 !important; }
+.p-1 { padding: 0.25rem !important; }
+.p-2 { padding: 0.5rem !important; }
+.p-3 { padding: 0.75rem !important; }
+.p-4 { padding: 1rem !important; }
+.p-5 { padding: 1.25rem !important; }
+.p-6 { padding: 1.5rem !important; }
+.p-8 { padding: 2rem !important; }
 
-.p-px {
-    padding: 1px !important;
-}
+/* Border Radius */
+.rounded-sm { border-radius: 4px !important; }
+.rounded { border-radius: 8px !important; }
+.rounded-md { border-radius: 10px !important; }
+.rounded-lg { border-radius: 12px !important; }
+.rounded-xl { border-radius: 16px !important; }
+.rounded-full { border-radius: 9999px !important; }
 
-.p-0 {
-    padding: 0 !important;
-}
+/* Spacing Utilities */
+.gap-2 { gap: 0.5rem !important; }
+.gap-3 { gap: 0.75rem !important; }
+.gap-4 { gap: 1rem !important; }
+.gap-6 { gap: 1.5rem !important; }
+.gap-8 { gap: 2rem !important; }
 
-.p-1 {
-    padding: 0.25rem !important;
-}
+.mb-1 { margin-bottom: 0.25rem !important; }
+.mb-2 { margin-bottom: 0.5rem !important; }
+.mb-3 { margin-bottom: 0.75rem !important; }
+.mb-4 { margin-bottom: 1rem !important; }
 
-.p-2 {
-    padding: 0.5rem !important;
-}
-
-.p-3 {
-    padding: 0.75rem !important;
-}
-
-.p-4 {
-    padding: 1rem !important;
-}
-
-.p-5 {
-    padding: 1.25rem !important;
-}
-
-.p-6 {
-    padding: 1.5rem !important;
-}
-
-.p-8 {
-    padding: 2rem !important;
-}
-
-/* ============================================
-   MODERN BORDER RADIUS
-   ============================================ */
-
-.rounded-sm {
-    border-radius: 4px !important;
-}
-
-.rounded {
-    border-radius: 8px !important;
-}
-
-.rounded-md {
-    border-radius: 10px !important;
-}
-
-.rounded-lg {
-    border-radius: 12px !important;
-}
-
-.rounded-xl {
-    border-radius: 16px !important;
-}
-
-.rounded-full {
-    border-radius: 9999px !important;
-}
-
-/* ============================================
-   MODERN SPACING - Gap and Margin Utilities
-   ============================================ */
-
-.gap-2 {
-    gap: 0.5rem !important;
-}
-
-.gap-3 {
-    gap: 0.75rem !important;
-}
-
-.gap-4 {
-    gap: 1rem !important;
-}
-
-.gap-6 {
-    gap: 1.5rem !important;
-}
-
-.gap-8 {
-    gap: 2rem !important;
-}
-
-.mb-1 {
-    margin-bottom: 0.25rem !important;
-}
-
-.mb-2 {
-    margin-bottom: 0.5rem !important;
-}
-
-.mb-3 {
-    margin-bottom: 0.75rem !important;
-}
-
-.mb-4 {
-    margin-bottom: 1rem !important;
-}
-
-.mt-2 {
-    margin-top: 0.5rem !important;
-}
-
-.mt-4 {
-    margin-top: 1rem !important;
-}
+.mt-2 { margin-top: 0.5rem !important; }
+.mt-4 { margin-top: 1rem !important; }
 
 .mx-auto {
     margin-left: auto !important;
     margin-right: auto !important;
 }
 
-/* ============================================
-   MODERN TRANSITIONS
-   ============================================ */
+/* Transitions */
+.transition-all { transition: all 0.3s ease !important; }
+.transition-shadow { transition: box-shadow 0.2s ease !important; }
+.transition-transform { transition: transform 0.2s ease !important; }
 
-.transition-all {
-    transition: all 0.3s ease !important;
-}
+/* Hover Effects */
+.hover-lift:hover { transform: translateY(-4px) !important; }
+.hover-scale:hover { transform: scale(1.02) !important; }
 
-.transition-shadow {
-    transition: box-shadow 0.2s ease !important;
-}
-
-.transition-transform {
-    transition: transform 0.2s ease !important;
-}
-
-/* ============================================
-   MODERN HOVER EFFECTS
-   ============================================ */
-
-.hover-lift:hover {
-    transform: translateY(-4px) !important;
-}
-
-.hover-scale:hover {
-    transform: scale(1.02) !important;
-}
-
-/* ============================================
-   BACKDROP & OVERLAY STYLES
-   ============================================ */
-
-.backdrop-blur {
-    backdrop-filter: blur(10px) !important;
-}
-
-.bg-overlay {
-    background: rgba(0, 0, 0, 0.5) !important;
-}
+/* Backdrop & Overlay */
+.backdrop-blur { backdrop-filter: blur(10px) !important; }
+.bg-overlay { background: rgba(0, 0, 0, 0.5) !important; }

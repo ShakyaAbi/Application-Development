@@ -1,4 +1,7 @@
 @page "/login"
+@inject IAuthenticationService AuthService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
 
 <MudPaper Class="login-container" Elevation="2">
     <MudStack Spacing="3">
@@ -11,44 +14,257 @@
         <MudDivider />
 
         <!-- Login Form -->
-        <div>
-            <MudText Typo="Typo.h5" GutterBottom="true"><strong>Welcome back</strong></MudText>
-            <MudText Typo="Typo.body2" Class="muted">Sign in to your journal to continue.</MudText>
-        </div>
+        @if (!_isRegistering)
+        {
+            <div>
+                <MudText Typo="Typo.h5" GutterBottom="true"><strong>Welcome back</strong></MudText>
+                <MudText Typo="Typo.body2" Class="muted">Sign in to your journal to continue.</MudText>
+            </div>
 
-        <MudTextField T="string" 
-                      Label="Email or username" 
-                      Placeholder="you@example.com" 
-                      Variant="Variant.Outlined"
-                      Adornment="Adornment.Start" 
-                      AdornmentIcon="@Icons.Material.Filled.Person" />
-        
-        <MudTextField T="string" 
-                      Label="Password" 
-                      InputType="InputType.Password" 
-                      Placeholder="••••••••" 
-                      Variant="Variant.Outlined"
-                      Adornment="Adornment.Start" 
-                      AdornmentIcon="@Icons.Material.Filled.Lock" />
+            <MudTextField @bind-Value="_loginRequest.UsernameOrEmail"
+                          Label="Email or username" 
+                          Placeholder="you@example.com" 
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Person"
+                          Disabled="@_isLoading" />
+            
+            <MudTextField @bind-Value="_loginRequest.Password"
+                          Label="Password" 
+                          InputType="InputType.Password" 
+                          Placeholder="••••••••" 
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Lock"
+                          Disabled="@_isLoading" />
 
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-            <MudCheckBox T="bool" Label="Remember me" />
-            <MudButton Variant="Variant.Text" Color="Color.Secondary" Size="Size.Small">Forgot password?</MudButton>
-        </MudStack>
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudCheckBox T="bool" @bind-Checked="_loginRequest.RememberMe" Label="Remember me" Disabled="@_isLoading" />
+                <MudButton Variant="Variant.Text" Color="Color.Secondary" Size="Size.Small" OnClick="@ResetPassword">
+                    Forgot password?
+                </MudButton>
+            </MudStack>
 
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large">
-            Sign in
-        </MudButton>
-        
-        <MudDivider Class="my-2" />
-        
-        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" FullWidth="true" StartIcon="@Icons.Material.Filled.PersonAdd" Size="Size.Large">
-            Create account
-        </MudButton>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       FullWidth="true" 
+                       Size="Size.Large"
+                       OnClick="@HandleLogin"
+                       Disabled="@_isLoading">
+                @if (_isLoading)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Signing in...</MudText>
+                }
+                else
+                {
+                    <span>Sign in</span>
+                }
+            </MudButton>
+            
+            <MudDivider Class="my-2" />
+            
+            <MudButton Variant="Variant.Outlined" 
+                       Color="Color.Secondary" 
+                       FullWidth="true" 
+                       StartIcon="@Icons.Material.Filled.PersonAdd" 
+                       Size="Size.Large"
+                       OnClick="@(() => _isRegistering = true)"
+                       Disabled="@_isLoading">
+                Create account
+            </MudButton>
+        }
+        else
+        {
+            <!-- Registration Form -->
+            <div>
+                <MudText Typo="Typo.h5" GutterBottom="true"><strong>Create Account</strong></MudText>
+                <MudText Typo="Typo.body2" Class="muted">Sign up to start journaling.</MudText>
+            </div>
+
+            <MudTextField @bind-Value="_registerRequest.FullName"
+                          Label="Full Name" 
+                          Placeholder="John Doe" 
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Person"
+                          Disabled="@_isLoading" />
+
+            <MudTextField @bind-Value="_registerRequest.Username"
+                          Label="Username" 
+                          Placeholder="john_doe" 
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.AccountCircle"
+                          Disabled="@_isLoading" />
+
+            <MudTextField @bind-Value="_registerRequest.Email"
+                          Label="Email" 
+                          Placeholder="you@example.com" 
+                          InputType="InputType.Email"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Email"
+                          Disabled="@_isLoading" />
+
+            <MudTextField @bind-Value="_registerRequest.Password"
+                          Label="Password" 
+                          Placeholder="••••••••" 
+                          InputType="InputType.Password"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Lock"
+                          Disabled="@_isLoading"
+                          HelperText="Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char" />
+
+            <MudTextField @bind-Value="_registerRequest.ConfirmPassword"
+                          Label="Confirm Password" 
+                          Placeholder="••••••••" 
+                          InputType="InputType.Password"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Lock"
+                          Disabled="@_isLoading" />
+
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       FullWidth="true" 
+                       Size="Size.Large"
+                       OnClick="@HandleRegister"
+                       Disabled="@_isLoading">
+                @if (_isLoading)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Creating account...</MudText>
+                }
+                else
+                {
+                    <span>Create account</span>
+                }
+            </MudButton>
+
+            <MudButton Variant="Variant.Text" 
+                       Color="Color.Secondary" 
+                       FullWidth="true" 
+                       OnClick="@(() => _isRegistering = false)"
+                       Disabled="@_isLoading">
+                Back to login
+            </MudButton>
+        }
     </MudStack>
 </MudPaper>
 
 @code {
+    private LoginRequest _loginRequest = new();
+    private RegisterRequest _registerRequest = new();
+    private bool _isLoading = false;
+    private bool _isRegistering = false;
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            _isLoading = true;
+
+            // Validate input
+            if (string.IsNullOrWhiteSpace(_loginRequest.UsernameOrEmail))
+            {
+                Snackbar.Add("Please enter your username or email", Severity.Error);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_loginRequest.Password))
+            {
+                Snackbar.Add("Please enter your password", Severity.Error);
+                return;
+            }
+
+            // Attempt login
+            var result = await AuthService.LoginAsync(_loginRequest.UsernameOrEmail, _loginRequest.Password);
+
+            if (result.Success)
+            {
+                Snackbar.Add("Login successful!", Severity.Success);
+                await Task.Delay(500);
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                Snackbar.Add(result.ErrorMessage ?? "Login failed", Severity.Error);
+            }
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task HandleRegister()
+    {
+        try
+        {
+            _isLoading = true;
+
+            // Validate input
+            if (string.IsNullOrWhiteSpace(_registerRequest.FullName))
+            {
+                Snackbar.Add("Please enter your full name", Severity.Error);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_registerRequest.Username))
+            {
+                Snackbar.Add("Please choose a username", Severity.Error);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_registerRequest.Email))
+            {
+                Snackbar.Add("Please enter your email", Severity.Error);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_registerRequest.Password))
+            {
+                Snackbar.Add("Please enter a password", Severity.Error);
+                return;
+            }
+
+            if (_registerRequest.Password != _registerRequest.ConfirmPassword)
+            {
+                Snackbar.Add("Passwords do not match", Severity.Error);
+                return;
+            }
+
+            // Attempt registration
+            var result = await AuthService.RegisterAsync(
+                _registerRequest.Username,
+                _registerRequest.Email,
+                _registerRequest.FullName,
+                _registerRequest.Password);
+
+            if (result.Success)
+            {
+                Snackbar.Add("Registration successful! Logging you in...", Severity.Success);
+                await Task.Delay(500);
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                Snackbar.Add(result.ErrorMessage ?? "Registration failed", Severity.Error);
+            }
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ResetPassword()
+    {
+        Snackbar.Add("Password reset feature coming soon", Severity.Info);
+        await Task.CompletedTask;
+    }
 }
 
 <style>
@@ -64,5 +280,9 @@
 
 .my-2 {
     margin: 0.5rem 0;
+}
+
+.muted {
+    opacity: 0.7;
 }
 </style>

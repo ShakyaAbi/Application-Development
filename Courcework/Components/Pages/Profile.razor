@@ -1,0 +1,371 @@
+@page "/profile"
+@inject IStorageService Storage
+
+<MudStack Spacing="4" Class="page-stack">
+    <!-- Profile Hero -->
+    <MudPaper Class="profile-hero" Elevation="4">
+        <MudStack Spacing="3">
+            <MudAvatar Style="width: 80px; height: 80px; font-size: 40px;">JD</MudAvatar>
+            <div>
+                <MudText Typo="Typo.h4"><strong>Your Journaling Journey</strong></MudText>
+                <MudText Typo="Typo.body2" Class="muted">Track your progress and insights</MudText>
+            </div>
+        </MudStack>
+    </MudPaper>
+
+    <!-- Key Statistics -->
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="stat-card" Elevation="3">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.caption" Class="muted">Total Entries</MudText>
+                    <MudText Typo="Typo.h3"><strong>@_totalEntries</strong></MudText>
+                    <MudText Typo="Typo.caption" Class="muted">journal entries created</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="stat-card" Elevation="3">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.caption" Class="muted">Total Words</MudText>
+                    <MudText Typo="Typo.h3"><strong>@_totalWords.ToString("N0")</strong></MudText>
+                    <MudText Typo="Typo.caption" Class="muted">words written</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="stat-card" Elevation="3">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.caption" Class="muted">Current Streak</MudText>
+                    <MudText Typo="Typo.h3"><strong>@_currentStreak</strong></MudText>
+                    <MudText Typo="Typo.caption" Class="muted">days in a row</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="stat-card" Elevation="3">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.caption" Class="muted">Longest Streak</MudText>
+                    <MudText Typo="Typo.h3"><strong>@_longestStreak</strong></MudText>
+                    <MudText Typo="Typo.caption" Class="muted">best streak</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Insights Row -->
+    <MudGrid Spacing="3">
+        <!-- Average Words per Entry -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="insight-card" Elevation="3">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Average Words per Entry</strong></MudText>
+                    <MudText Typo="Typo.h5"><strong>@GetAverageWordsPerEntry()</strong> words</MudText>
+                    <MudProgressLinear Value="@Math.Min(GetAverageWordsPerEntry() / 5, 100)" Color="Color.Primary" Class="mt-3" />
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Mood Distribution -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="insight-card" Elevation="3">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Primary Mood Distribution</strong></MudText>
+                @if (_moodStats.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="muted">No mood data yet</MudText>
+                }
+                else
+                {
+                    <MudStack Spacing="2" Class="mt-3">
+                        @foreach (var mood in _moodStats.Take(5))
+                        {
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <span style="min-width: 80px;">@mood.Key</span>
+                                <MudProgressLinear Value="@((mood.Value / (double)_totalEntries) * 100)" 
+                                                   Class="flex-grow-1"
+                                                   Color="GetMoodColor(mood.Key)" />
+                                <span style="min-width: 40px; text-align: right;">@mood.Value</span>
+                            </div>
+                        }
+                    </MudStack>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <!-- Secondary Mood Distribution -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="insight-card" Elevation="3">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Secondary Mood Distribution</strong></MudText>
+                @if (_secondaryMoodStats.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="muted">No secondary mood data yet</MudText>
+                }
+                else
+                {
+                    <MudStack Spacing="2" Class="mt-3">
+                        @foreach (var mood in _secondaryMoodStats.Take(5))
+                        {
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <span style="min-width: 80px;">@mood.Key</span>
+                                <MudProgressLinear Value="@((mood.Value / (double)_totalEntries) * 100)" 
+                                                   Class="flex-grow-1"
+                                                   Color="GetMoodColor(mood.Key)" />
+                                <span style="min-width: 40px; text-align: right;">@mood.Value</span>
+                            </div>
+                        }
+                    </MudStack>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Writing Habits -->
+    <MudPaper Class="habits-card" Elevation="3">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Writing Habits</strong></MudText>
+        <MudStack Spacing="3" Class="mt-4">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Entries per month</span>
+                <strong>@GetEntriesPerMonth()</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Average entry length</span>
+                <strong>@GetAverageWordsPerEntry() words</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Consistency score</span>
+                <strong>@GetConsistencyScore()%</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Total writing time</span>
+                <strong>~@GetEstimatedWritingTime() hours</strong>
+            </div>
+        </MudStack>
+    </MudPaper>
+
+    <!-- Tags Used -->
+    <MudPaper Class="tags-card" Elevation="3">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Available Tags</strong></MudText>
+        <MudChipSet T="string" Class="tags-chipset mt-3">
+            @foreach (var tag in _availableTags)
+            {
+                <MudChip T="string" Value="@tag.Name" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Medium">
+                    <span style="display: inline-block; width: 12px; height: 12px; background-color: @tag.Color; border-radius: 50%; margin-right: 8px;"></span>
+                    @tag.Name
+                </MudChip>
+            }
+        </MudChipSet>
+    </MudPaper>
+
+    <!-- Tag Manager Component -->
+    <TagManager OnTagsChanged="@OnTagsRefreshed" />
+
+    <!-- Action Buttons -->
+    <MudStack Row="true" Spacing="2" Class="action-buttons">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Edit">
+            Edit Profile
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Download">
+            Export Data
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+@code {
+    private int _totalEntries = 0;
+    private int _totalWords = 0;
+    private int _currentStreak = 0;
+    private int _longestStreak = 0;
+    private List<JournalEntry> _allEntries = new();
+    private List<Tag> _availableTags = new();
+    private Dictionary<string, int> _moodStats = new();
+    private Dictionary<string, int> _secondaryMoodStats = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Storage.InitializeAsync();
+        await LoadProfileData();
+    }
+
+    private async Task LoadProfileData()
+    {
+        // Load all entries
+        var entriesResult = await Storage.GetAllEntriesAsync();
+        if (entriesResult.Success)
+        {
+            _allEntries = entriesResult.Data ?? new();
+        }
+
+        // Load statistics
+        var statsResult = await Storage.GetStatisticsAsync();
+        if (statsResult.Success)
+        {
+            _totalEntries = statsResult.Data.TotalEntries;
+            _currentStreak = statsResult.Data.CurrentStreak;
+            _longestStreak = statsResult.Data.LongestStreak;
+        }
+
+        // Load word count
+        var wordCountResult = await Storage.GetTotalWordCountAsync();
+        if (wordCountResult.Success)
+        {
+            _totalWords = wordCountResult.Data;
+        }
+
+        // Load tags
+        var tagsResult = await Storage.GetAllTagsAsync();
+        if (tagsResult.Success)
+        {
+            _availableTags = tagsResult.Data ?? new();
+        }
+
+        // Calculate mood statistics
+        _moodStats = _allEntries
+            .Where(e => !string.IsNullOrEmpty(e.Mood))
+            .GroupBy(e => e.Mood)
+            .OrderByDescending(g => g.Count())
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        // Calculate secondary mood statistics
+        _secondaryMoodStats = _allEntries
+            .Where(e => !string.IsNullOrEmpty(e.SecondaryMood))
+            .GroupBy(e => e.SecondaryMood)
+            .OrderByDescending(g => g.Count())
+            .ToDictionary(g => g.Key, g => g.Count());
+    }
+
+    private int GetAverageWordsPerEntry()
+    {
+        if (_totalEntries == 0) return 0;
+        return _totalWords / _totalEntries;
+    }
+
+    private int GetEntriesPerMonth()
+    {
+        if (_totalEntries == 0) return 0;
+        if (_allEntries.Count < 2) return _totalEntries;
+        
+        var maxDate = _allEntries.Max(e => e.Date);
+        var minDate = _allEntries.Min(e => e.Date);
+        var daysDiff = maxDate.DayNumber - minDate.DayNumber;
+        var monthsActive = daysDiff / 30;
+        if (monthsActive == 0) monthsActive = 1;
+        return _totalEntries / monthsActive;
+    }
+
+    private int GetConsistencyScore()
+    {
+        if (_longestStreak == 0) return 0;
+        // Score based on current streak vs longest streak
+        return Math.Min((int)((_currentStreak / (double)_longestStreak) * 100), 100);
+    }
+
+    private int GetEstimatedWritingTime()
+    {
+        // Estimate 5 minutes per 100 words
+        return _totalWords / 100 / 12; // 12 = 5 min per 100 words
+    }
+
+    private Color GetMoodColor(string mood)
+    {
+        return mood switch
+        {
+            "Happy" => Color.Success,
+            "Calm" => Color.Info,
+            "Stressed" => Color.Warning,
+            "Grateful" => Color.Success,
+            "Curious" => Color.Secondary,
+            "Hopeful" => Color.Success,
+            "Anxious" => Color.Warning,
+            "Melancholic" => Color.Warning,
+            "Energetic" => Color.Success,
+            "Peaceful" => Color.Info,
+            _ => Color.Primary
+        };
+    }
+
+    private async Task OnTagsRefreshed()
+    {
+        // Refresh the tags list
+        var tagsResult = await Storage.GetAllTagsAsync();
+        if (tagsResult.Success)
+        {
+            _availableTags = tagsResult.Data ?? new();
+        }
+    }
+}
+
+<style>
+.page-stack {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.profile-hero {
+    padding: 2.5rem;
+    background: linear-gradient(135deg, #1976d2, #1565c0);
+    color: white;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    padding: 1.75rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.insight-card {
+    padding: 1.75rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.habits-card {
+    padding: 1.75rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.tags-card {
+    padding: 1.75rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.tags-chipset {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.action-buttons {
+    padding: 1rem 0;
+    justify-content: center;
+}
+
+.muted {
+    opacity: 0.7;
+}
+
+.mt-3 {
+    margin-top: 1rem;
+}
+
+.mt-4 {
+    margin-top: 1.5rem;
+}
+
+.flex-grow-1 {
+    flex: 1;
+}
+</style>

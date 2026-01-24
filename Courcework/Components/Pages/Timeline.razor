@@ -1,100 +1,460 @@
 @page "/timeline"
+@inject IStorageService Storage
 
 <MudStack Spacing="4" Class="page-stack">
     <div class="timeline-header">
         <MudText Typo="Typo.h5"><strong>Timeline</strong></MudText>
-        <MudText Typo="Typo.body2" Class="muted">Browse your journal entries</MudText>
+        <MudText Typo="Typo.body2" Class="muted">Browse and search your journal entries</MudText>
     </div>
 
-    <!-- Filter Section -->
+    <!-- Search Section -->
     <MudPaper Class="filters-paper" Elevation="3">
         <MudStack Spacing="3">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                <MudIcon Icon="@Icons.Material.Filled.FilterAlt" Size="Size.Medium" />
-                <MudText Typo="Typo.h6"><strong>Filter Entries</strong></MudText>
+                <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Medium" />
+                <MudText Typo="Typo.h6"><strong>Search Entries</strong></MudText>
             </MudStack>
             
-            <MudGrid Spacing="3">
-                <MudItem xs="12" sm="6" md="3">
-                    <MudTextField T="string" 
-                                  Label="Search" 
-                                  Placeholder="Title or content" 
-                                  Variant="Variant.Outlined"
-                                  FullWidth="true" />
-                </MudItem>
-                <MudItem xs="12" sm="6" md="3">
-                    <div>
-                        <MudText Typo="Typo.caption"><strong>Moods</strong></MudText>
-                        <MudStack Row="true" Spacing="1" Class="mt-2">
-                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">Calm</MudButton>
-                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">Grateful</MudButton>
-                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">Stressed</MudButton>
-                        </MudStack>
-                    </div>
-                </MudItem>
-                <MudItem xs="12" sm="6" md="3">
-                    <div>
-                        <MudText Typo="Typo.caption"><strong>Tags</strong></MudText>
-                        <MudStack Row="true" Spacing="1" Class="mt-2">
-                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">Work</MudButton>
-                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">Gratitude</MudButton>
-                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">Reflection</MudButton>
-                        </MudStack>
-                    </div>
-                </MudItem>
-            </MudGrid>
+            <MudTextField T="string" 
+                         @bind-Value="_searchTerm"
+                         Label="Search" 
+                         Placeholder="Title or content" 
+                         Variant="Variant.Outlined"
+                         FullWidth="true"
+                         Clearable="true"
+                         ClearButtonClick="@ClearSearch"
+                         OnInput="@OnSearchInput" />
         </MudStack>
     </MudPaper>
 
-    <!-- Entry Cards Grid -->
-    <MudGrid Spacing="3" Class="entries-grid">
-        @foreach (var entry in new[] 
-        {
-            (Title: "Morning reflections", Date: "12/20/2025", Mood: "Calm", Snippet: "Quick thoughts about the day."),
-            (Title: "Project wrap-up", Date: "12/19/2025", Mood: "Grateful", Snippet: "Celebrated shipping the release."),
-            (Title: "Midweek check-in", Date: "12/18/2025", Mood: "Stressed", Snippet: "Lots of meetings, but made progress.")
-        })
-        {
-            <MudItem xs="12" sm="12" md="4" lg="4">
-                <MudPaper Class="entry-card" Elevation="3">
-                    <MudStack Spacing="3" Style="height: 100%;">
-                        <!-- Header -->
-                        <div>
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-                                <MudText Typo="Typo.subtitle2"><strong>@entry.Date</strong></MudText>
-                                <MudChip T="string" Value="@entry.Mood" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">@entry.Mood</MudChip>
-                            </MudStack>
-                        </div>
+    <!-- Filters Section -->
+    <MudPaper Class="filters-paper" Elevation="3">
+        <MudStack Spacing="3">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.FilterList" Size="Size.Medium" />
+                <MudText Typo="Typo.h6"><strong>Filter Entries</strong></MudText>
+                <MudSpacer />
+                @if (_hasActiveFilters)
+                {
+                    <MudButton Variant="Variant.Text" 
+                               Color="Color.Error" 
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.ClearAll"
+                               OnClick="@ResetFilters">
+                        Clear Filters
+                    </MudButton>
+                }
+            </MudStack>
 
-                        <!-- Title and Preview -->
-                        <div>
-                            <MudText Typo="Typo.h6" Class="truncate"><strong>@entry.Title</strong></MudText>
-                            <MudText Typo="Typo.body2" Class="muted entry-snippet">@entry.Snippet</MudText>
-                        </div>
-
-                        <!-- Spacer -->
-                        <MudSpacer />
-
-                        <!-- Footer -->
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="footer-section">
-                            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary" Class="open-button">
-                                Open ?
-                            </MudButton>
-                            <MudText Typo="Typo.caption" Class="muted">Updated today</MudText>
-                        </MudStack>
+            <!-- Filter Controls Row -->
+            <MudGrid Spacing="2">
+                <!-- Mood Filter -->
+                <MudItem xs="12" sm="6" md="3">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Class="filter-label"><strong>Mood</strong></MudText>
+                        <MudSelect T="string" 
+                                   @bind-Value="_selectedMood"
+                                   Label="Filter by mood"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   OnClearedClick="@(() => OnFilterChanged())"
+                                   @onchange="@((ChangeEventArgs e) => OnFilterChanged())">
+                            <MudSelectItem T="string" Value="@("Happy")">?? Happy</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Calm")">?? Calm</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Stressed")">?? Stressed</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Grateful")">?? Grateful</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Curious")">?? Curious</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Hopeful")">?? Hopeful</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Anxious")">?? Anxious</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Melancholic")">?? Melancholic</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Energetic")">? Energetic</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Peaceful")">?? Peaceful</MudSelectItem>
+                        </MudSelect>
                     </MudStack>
-                </MudPaper>
-            </MudItem>
-        }
-    </MudGrid>
+                </MudItem>
 
-    <!-- Pagination -->
-    <div class="pagination-wrapper">
-        <MudPagination Selected="1" Count="5" />
-    </div>
+                <!-- Secondary Mood Filter -->
+                <MudItem xs="12" sm="6" md="3">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Class="filter-label"><strong>Secondary Mood</strong></MudText>
+                        <MudSelect T="string" 
+                                   @bind-Value="_selectedSecondaryMood"
+                                   Label="Filter by secondary"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   OnClearedClick="@(() => OnFilterChanged())"
+                                   @onchange="@((ChangeEventArgs e) => OnFilterChanged())">
+                            <MudSelectItem T="string" Value="@("Happy")">?? Happy</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Calm")">?? Calm</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Stressed")">?? Stressed</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Grateful")">?? Grateful</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Curious")">?? Curious</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Hopeful")">?? Hopeful</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Anxious")">?? Anxious</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Melancholic")">?? Melancholic</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Energetic")">? Energetic</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Peaceful")">?? Peaceful</MudSelectItem>
+                        </MudSelect>
+                    </MudStack>
+                </MudItem>
+
+                <!-- Tags Filter -->
+                <MudItem xs="12" sm="6" md="3">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Class="filter-label"><strong>Tags</strong></MudText>
+                        <MudSelect T="string" 
+                                   @bind-Value="_selectedTag"
+                                   Label="Filter by tag"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   OnClearedClick="@(() => OnFilterChanged())"
+                                   @onchange="@((ChangeEventArgs e) => OnFilterChanged())">
+                            @foreach (var tag in _availableTags)
+                            {
+                                <MudSelectItem T="string" Value="@tag.Name">
+                                    @tag.Name
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudStack>
+                </MudItem>
+
+                <!-- Date Range Filter -->
+                <MudItem xs="12" sm="6" md="3">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Class="filter-label"><strong>Date Range</strong></MudText>
+                        <MudButton Variant="Variant.Outlined" 
+                                   Size="Size.Small"
+                                   FullWidth="true"
+                                   OnClick="@ToggleDatePicker"
+                                   StartIcon="@Icons.Material.Filled.DateRange">
+                            @if (_showDatePicker)
+                            {
+                                <span>@_startDate?.ToString("MMM dd") - @_endDate?.ToString("MMM dd")</span>
+                            }
+                            else
+                            {
+                                <span>Select Dates</span>
+                            }
+                        </MudButton>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Date Picker (Collapsible) -->
+            @if (_showDatePicker)
+            {
+                <MudDivider Class="my-2" />
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.End">
+                    <MudDatePicker @bind-Date="_startDate"
+                                   Label="Start Date"
+                                   Variant="Variant.Outlined" />
+                    <MudDatePicker @bind-Date="_endDate"
+                                   Label="End Date"
+                                   Variant="Variant.Outlined" />
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               OnClick="@ToggleDatePicker">
+                        Done
+                    </MudButton>
+                </MudStack>
+            }
+
+            <!-- Active Filters Display -->
+            @if (_hasActiveFilters)
+            {
+                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                    <MudText Typo="Typo.caption" Class="filter-label">Active filters:</MudText>
+                    @if (!string.IsNullOrEmpty(_selectedMood))
+                    {
+                        <MudChip T="string" Color="Color.Primary" OnClose="@(() => { _selectedMood = ""; OnFilterChanged(); })">
+                            Mood: @_selectedMood
+                        </MudChip>
+                    }
+                    @if (!string.IsNullOrEmpty(_selectedSecondaryMood))
+                    {
+                        <MudChip T="string" Color="Color.Secondary" OnClose="@(() => { _selectedSecondaryMood = ""; OnFilterChanged(); })">
+                            Secondary: @_selectedSecondaryMood
+                        </MudChip>
+                    }
+                    @if (!string.IsNullOrEmpty(_selectedTag))
+                    {
+                        <MudChip T="string" Color="Color.Info" OnClose="@(() => { _selectedTag = ""; OnFilterChanged(); })">
+                            Tag: @_selectedTag
+                        </MudChip>
+                    }
+                    @if (_startDate.HasValue || _endDate.HasValue)
+                    {
+                        <MudChip T="string" Color="Color.Warning" OnClose="@(() => { _startDate = null; _endDate = null; OnFilterChanged(); })">
+                            Dates: @_startDate?.ToString("MMM dd") - @_endDate?.ToString("MMM dd")
+                        </MudChip>
+                    }
+                </MudStack>
+            }
+        </MudStack>
+    </MudPaper>
+
+    <!-- Results Info -->
+    @if (_hasActiveFilters || !string.IsNullOrEmpty(_searchTerm))
+    {
+        <MudText Typo="Typo.body2" Class="muted">
+            Found @_displayEntries.Count entry(@(_displayEntries.Count != 1 ? "ies" : ""))
+            @if (!string.IsNullOrEmpty(_searchTerm))
+            {
+                <span>matching "@_searchTerm"</span>
+            }
+            @if (_hasActiveFilters)
+            {
+                <span>with active filters</span>
+            }
+        </MudText>
+    }
+
+    <!-- Entry Cards Grid -->
+    @if (_displayEntries.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Filled">
+            @if (string.IsNullOrEmpty(_searchTerm) && !_hasActiveFilters)
+            {
+                <span>No entries yet. Start journaling in the <strong>Today</strong> section!</span>
+            }
+            else if (_hasActiveFilters || !string.IsNullOrEmpty(_searchTerm))
+            {
+                <span>No entries found matching your search or filters. Try adjusting your criteria.</span>
+            }
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3" Class="entries-grid">
+            @foreach (var entry in _displayEntries)
+            {
+                <MudItem xs="12" sm="12" md="4" lg="4">
+                    <MudPaper Class="entry-card" Elevation="3">
+                        <MudStack Spacing="3" Style="height: 100%;">
+                            <!-- Header -->
+                            <div>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                                    <MudText Typo="Typo.subtitle2"><strong>@entry.Date.ToString("MMM dd, yyyy")</strong></MudText>
+                                    @if (!string.IsNullOrEmpty(entry.Mood))
+                                    {
+                                        <MudChip T="string" Value="@entry.Mood" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
+                                            @entry.Mood
+                                        </MudChip>
+                                    }
+                                    @if (!string.IsNullOrEmpty(entry.SecondaryMood))
+                                    {
+                                        <MudChip T="string" Value="@entry.SecondaryMood" Color="Color.Secondary" Variant="Variant.Filled" Size="Size.Small">
+                                            @entry.SecondaryMood
+                                        </MudChip>
+                                    }
+                                </MudStack>
+                            </div>
+
+                            <!-- Tags Display -->
+                            @if (entry.Tags.Count > 0)
+                            {
+                                <div>
+                                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                                        <MudIcon Icon="@Icons.Material.Filled.Tag" Size="Size.Small" Class="muted" />
+                                        @foreach (var tag in entry.Tags)
+                                        {
+                                            <MudChip T="string" Value="@tag" Variant="Variant.Filled" Size="Size.Small" Color="Color.Primary">
+                                                @tag
+                                            </MudChip>
+                                        }
+                                    </MudStack>
+                                </div>
+                            }
+
+                            <!-- Title and Preview -->
+                            <div>
+                                <MudText Typo="Typo.h6" Class="truncate">
+                                    <strong>@(string.IsNullOrEmpty(entry.Title) ? "Untitled" : entry.Title)</strong>
+                                </MudText>
+                                <MudText Typo="Typo.body2" Class="muted entry-snippet">
+                                    @GetPreview(entry.Content)
+                                </MudText>
+                            </div>
+
+                            <!-- Category and Word Count -->
+                            <div>
+                                @if (!string.IsNullOrEmpty(entry.Category))
+                                {
+                                    <MudText Typo="Typo.caption" Class="muted">
+                                        <strong>Category:</strong> @entry.Category
+                                    </MudText>
+                                }
+                                <MudText Typo="Typo.caption" Class="muted">
+                                    <strong>Words:</strong> @GetWordCount(entry.Content)
+                                </MudText>
+                            </div>
+
+                            <!-- Spacer -->
+                            <MudSpacer />
+
+                            <!-- Footer -->
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="footer-section">
+                                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary" Class="open-button">
+                                    View ?
+                                </MudButton>
+                                <MudText Typo="Typo.caption" Class="muted">@GetTimeAgo(entry.UpdatedAt)</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
 </MudStack>
 
 @code {
+    private string _searchTerm = "";
+    private string _selectedMood = "";
+    private string _selectedSecondaryMood = "";
+    private string _selectedTag = "";
+    private DateTime? _startDate = null;
+    private DateTime? _endDate = null;
+    private bool _showDatePicker = false;
+
+    private List<JournalEntry> _allEntries = new();
+    private List<JournalEntry> _displayEntries = new();
+    private List<Tag> _availableTags = new();
+
+    private bool _hasActiveFilters => !string.IsNullOrEmpty(_selectedMood) || 
+                                      !string.IsNullOrEmpty(_selectedSecondaryMood) ||
+                                      !string.IsNullOrEmpty(_selectedTag) ||
+                                      _startDate.HasValue ||
+                                      _endDate.HasValue;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Storage.InitializeAsync();
+        await LoadAllEntries();
+        await LoadAvailableTags();
+    }
+
+    private async Task LoadAllEntries()
+    {
+        var result = await Storage.GetAllEntriesAsync();
+        if (result.Success)
+        {
+            _allEntries = result.Data ?? new();
+            _displayEntries = _allEntries;
+        }
+    }
+
+    private async Task LoadAvailableTags()
+    {
+        var result = await Storage.GetAllTagsAsync();
+        if (result.Success)
+        {
+            _availableTags = result.Data ?? new();
+        }
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs args)
+    {
+        _searchTerm = args.Value?.ToString() ?? "";
+        await ApplyAllFilters();
+    }
+
+    private async Task OnFilterChanged()
+    {
+        await ApplyAllFilters();
+    }
+
+    private async Task ApplyAllFilters()
+    {
+        var filtered = _allEntries;
+
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            var searchLower = _searchTerm.ToLower();
+            filtered = filtered.Where(e =>
+                (e.Title?.ToLower().Contains(searchLower) ?? false) ||
+                (e.Content?.ToLower().Contains(searchLower) ?? false)
+            ).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(_selectedMood))
+        {
+            filtered = filtered.Where(e => e.Mood == _selectedMood).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(_selectedSecondaryMood))
+        {
+            filtered = filtered.Where(e => e.SecondaryMood == _selectedSecondaryMood).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(_selectedTag))
+        {
+            filtered = filtered.Where(e => e.Tags.Contains(_selectedTag)).ToList();
+        }
+
+        if (_startDate.HasValue || _endDate.HasValue)
+        {
+            filtered = filtered.Where(e =>
+            {
+                var entryDate = e.Date;
+                var startDateOnly = _startDate.HasValue ? DateOnly.FromDateTime(_startDate.Value) : DateOnly.MinValue;
+                var endDateOnly = _endDate.HasValue ? DateOnly.FromDateTime(_endDate.Value) : DateOnly.MaxValue;
+                var startMatch = !_startDate.HasValue || entryDate >= startDateOnly;
+                var endMatch = !_endDate.HasValue || entryDate <= endDateOnly;
+                return startMatch && endMatch;
+            }).ToList();
+        }
+
+        _displayEntries = filtered.OrderByDescending(e => e.Date).ToList();
+    }
+
+    private void ToggleDatePicker()
+    {
+        _showDatePicker = !_showDatePicker;
+    }
+
+    private async Task ClearSearch()
+    {
+        _searchTerm = "";
+        await ApplyAllFilters();
+    }
+
+    private async Task ResetFilters()
+    {
+        _selectedMood = "";
+        _selectedSecondaryMood = "";
+        _selectedTag = "";
+        _startDate = null;
+        _endDate = null;
+        _searchTerm = "";
+        _showDatePicker = false;
+        await ApplyAllFilters();
+    }
+
+    private string GetPreview(string content)
+    {
+        if (string.IsNullOrEmpty(content)) return "";
+        if (content.Length > 150)
+            return content.Substring(0, 150) + "...";
+        return content;
+    }
+
+    private int GetWordCount(string content)
+    {
+        if (string.IsNullOrEmpty(content)) return 0;
+        return content.Split(new[] { ' ', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length;
+    }
+
+    private string GetTimeAgo(DateTime dateTime)
+    {
+        var timeSpan = DateTime.Now - dateTime;
+        if (timeSpan.TotalSeconds < 60) return "Just now";
+        if (timeSpan.TotalMinutes < 60) return $"{(int)timeSpan.TotalMinutes}m ago";
+        if (timeSpan.TotalHours < 24) return $"{(int)timeSpan.TotalHours}h ago";
+        if (timeSpan.TotalDays < 7) return $"{(int)timeSpan.TotalDays}d ago";
+        return dateTime.ToString("MMM dd");
+    }
 }
 
 <style>
@@ -108,10 +468,25 @@
     padding: 1.5rem 0;
 }
 
+.muted {
+    opacity: 0.7;
+}
+
 .filters-paper {
     padding: 2rem 1.5rem;
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+:deep(.mud-dark .filters-paper) {
+    background-color: #424242 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+.filter-label {
+    display: inline-block;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid rgba(25, 118, 210, 0.3);
 }
 
 .entries-grid {
@@ -134,6 +509,15 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
+:deep(.mud-dark .entry-card) {
+    background-color: #424242 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+:deep(.mud-dark .entry-card:hover) {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
 .entry-snippet {
     overflow: hidden;
     display: -webkit-box;
@@ -148,6 +532,10 @@
     border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+:deep(.mud-dark .footer-section) {
+    border-top-color: rgba(255, 255, 255, 0.12) !important;
+}
+
 .open-button {
     font-weight: 600 !important;
     transition: all 0.2s ease !important;
@@ -157,12 +545,13 @@
     transform: translateX(2px);
 }
 
-.pagination-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-    padding: 1rem;
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.my-2 {
+    margin: 0.5rem 0;
 }
 </style>
