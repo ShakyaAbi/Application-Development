@@ -5,7 +5,16 @@
     <h3>Write Content</h3>
     <div id="editor" style="height: 200px; background: white;"></div>
     <button @onclick="Save">Save</button>
-    <pre>@HtmlContent</pre>
+    
+    @if (!string.IsNullOrEmpty(HtmlContent))
+    {
+        <div class="preview-section">
+            <h4>Preview</h4>
+            <div class="content-preview">
+                @((MarkupString)HtmlContent)
+            </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -55,6 +64,49 @@
 .rich-editor-container {
     width: 100%;
     padding: 1rem;
+}
+
+.preview-section {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+}
+
+.preview-section h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.875rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.content-preview {
+    background: white;
+    padding: 1rem;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    line-height: 1.6;
+    color: #333;
+    word-break: break-word;
+}
+
+.content-preview :deep(p) {
+    margin: 0.5rem 0;
+}
+
+.content-preview :deep(strong) {
+    font-weight: 600;
+}
+
+.content-preview :deep(em) {
+    font-style: italic;
+}
+
+.content-preview :deep(ol),
+.content-preview :deep(ul) {
+    margin: 0.5rem 0;
+    padding-left: 2rem;
 }
 
 /* Quill Snow Theme Customization */
