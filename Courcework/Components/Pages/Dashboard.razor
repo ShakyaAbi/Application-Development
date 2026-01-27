@@ -1,6 +1,10 @@
 ﻿@page "/dashboard"
 @inject IStorageService Storage
 @inject IJSRuntime JS
+@inject IAuthenticationService AuthService
+@inject IExportService ExportService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
 
 <MudPaper Class="dashboard-hero" Elevation="4">
     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
@@ -156,19 +160,6 @@
                             <MudText Typo="Typo.caption" Class="muted">average</MudText>
                         </MudStack>
                     </div>
-
-                    <MudDivider />
-
-                    <div class="stat-row">
-                        <div class="stat-label">
-                            <MudIcon Icon="@Icons.Material.Filled.Timer" class="timer-icon"></MudIcon>
-                            <span>Writing Time Estimate</span>
-                        </div>
-                        <MudStack AlignItems="AlignItems.End">
-                            <MudText Typo="Typo.h5"><strong>~@GetEstimatedWritingTime()</strong></MudText>
-                            <MudText Typo="Typo.caption" Class="muted">hours</MudText>
-                        </MudStack>
-                    </div>
                 </MudStack>
             </MudPaper>
         </MudItem>
@@ -225,6 +216,32 @@
                 </tbody>
             </MudSimpleTable>
         }
+    </MudPaper>
+
+    <!-- ✅ Export Data Section -->
+    <MudPaper Class="export-section" Elevation="3">
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Export Your Data</strong></MudText>
+            <MudText Typo="Typo.body2" Class="muted">Download all your journal entries in your preferred format</MudText>
+            
+            <MudStack Row="true" Spacing="2" Class="mt-3">
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary" 
+                          Size="Size.Medium"
+                          StartIcon="@Icons.Material.Filled.DownloadForOffline"
+                          OnClick="@(() => ExportData("json"))">
+                    Export as JSON
+                </MudButton>
+                
+                <MudButton Variant="Variant.Outlined" 
+                          Color="Color.Primary" 
+                          Size="Size.Medium"
+                          StartIcon="@Icons.Material.Filled.DownloadForOffline"
+                          OnClick="@(() => ExportData("csv"))">
+                    Export as CSV
+                </MudButton>
+            </MudStack>
+        </MudStack>
     </MudPaper>
 </MudStack>
 
@@ -404,6 +421,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Check authentication - MUST BE LOGGED IN
+        var currentUser = await AuthService.GetCurrentUserAsync();
+        if (currentUser == null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
         await Storage.InitializeAsync();
         await LoadDashboardData();
     }
@@ -435,36 +460,69 @@
 
     private async Task LoadDashboardData()
     {
-        // Load statistics
-        var statsResult = await Storage.GetStatisticsAsync();
-        if (statsResult.Success)
+        try
         {
-            _totalEntries = statsResult.Data.TotalEntries;
-            _currentStreak = statsResult.Data.CurrentStreak;
-            _longestStreak = statsResult.Data.LongestStreak;
-        }
+            System.Diagnostics.Debug.WriteLine("Loading dashboard data...");
 
-        // Load word count
-        var wordCountResult = await Storage.GetTotalWordCountAsync();
-        if (wordCountResult.Success)
-        {
-            _totalWords = wordCountResult.Data;
-        }
+            // ✅ Load statistics
+            var statsResult = await Storage.GetStatisticsAsync();
+            if (statsResult.Success)
+            {
+                _totalEntries = statsResult.Data.TotalEntries;
+                _currentStreak = statsResult.Data.CurrentStreak;
+                _longestStreak = statsResult.Data.LongestStreak;
+                System.Diagnostics.Debug.WriteLine($"✅ Stats loaded: Entries={_totalEntries}, Current Streak={_currentStreak}, Longest={_longestStreak}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Stats error: {statsResult.ErrorMessage}");
+            }
 
-        // Load all entries
-        var entriesResult = await Storage.GetAllEntriesAsync();
-        if (entriesResult.Success)
-        {
-            _allEntries = entriesResult.Data ?? new();
-            _recentEntries = _allEntries.Take(5).ToList();
+            // ✅ Load word count
+            var wordCountResult = await Storage.GetTotalWordCountAsync();
+            if (wordCountResult.Success)
+            {
+                _totalWords = wordCountResult.Data;
+                System.Diagnostics.Debug.WriteLine($"✅ Word count loaded: {_totalWords}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Word count error: {wordCountResult.ErrorMessage}");
+            }
+
+            // ✅ Load recent entries
+            var entriesResult = await Storage.GetAllEntriesAsync();
+            if (entriesResult.Success)
+            {
+                _allEntries = entriesResult.Data ?? new();
+                _recentEntries = _allEntries.Take(5).ToList();
+                System.Diagnostics.Debug.WriteLine($"✅ Entries loaded: {_recentEntries.Count}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Entries error: {entriesResult.ErrorMessage}");
+            }
+
+            // ✅ Load mood stats
+            LoadMoodStats();
             
-            // Calculate mood statistics
-            _moodStats = _allEntries
-                .Where(e => !string.IsNullOrEmpty(e.Mood))
-                .GroupBy(e => e.Mood)
-                .OrderByDescending(g => g.Count())
-                .ToDictionary(g => g.Key, g => g.Count());
+            
+            System.Diagnostics.Debug.WriteLine("✅ Dashboard data loading complete");
         }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error loading dashboard data: {ex.Message}");
+        }
+    }
+
+    private void LoadMoodStats()
+    {
+        // Calculate mood statistics
+        _moodStats = _allEntries
+            .Where(e => !string.IsNullOrEmpty(e.Mood))
+            .GroupBy(e => e.Mood)
+            .OrderByDescending(g => g.Count())
+            .ToDictionary(g => g.Key, g => g.Count());
     }
 
     private int GetAverageWordsPerEntry()
@@ -491,11 +549,68 @@
         return Math.Min((int)((_currentStreak / (double)_longestStreak) * 100), 100);
     }
 
-    private int GetEstimatedWritingTime()
+    /// <summary>
+    /// ✅ Export journal entries in requested format
+    /// </summary>
+    private async Task ExportData(string format)
     {
-        // Estimate 5 minutes per 100 words
-        return _totalWords / 100 / 12; // 12 = 5 min per 100 words
+        try
+        {
+            if (_allEntries.Count == 0)
+            {
+                Snackbar.Add("No entries to export", Severity.Warning);
+                return;
+            }
+
+            if (format.ToLower() == "json")
+            {
+                var result = await ExportService.ExportToJsonAsync(_allEntries);
+                if (result.Success)
+                {
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(result.Data);
+                    var fileName = $"journal_export_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+                    await JS.InvokeVoidAsync("downloadFile", bytes, fileName);
+                    Snackbar.Add($"✅ Exported {_allEntries.Count} entries as JSON", Severity.Success);
+                    System.Diagnostics.Debug.WriteLine($"✅ Export successful: {fileName}");
+                }
+                else
+                {
+                    Snackbar.Add($"Export failed: {result.ErrorMessage}", Severity.Error);
+                    System.Diagnostics.Debug.WriteLine($"❌ Export error: {result.ErrorMessage}");
+                }
+            }
+            else if (format.ToLower() == "csv")
+            {
+                var result = await ExportService.ExportToCsvAsync(_allEntries);
+                if (result.Success)
+                {
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(result.Data);
+                    var fileName = $"journal_export_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+                    await JS.InvokeVoidAsync("downloadFile", bytes, fileName);
+                    Snackbar.Add($"✅ Exported {_allEntries.Count} entries as CSV", Severity.Success);
+                    System.Diagnostics.Debug.WriteLine($"✅ Export successful: {fileName}");
+                }
+                else
+                {
+                    Snackbar.Add($"Export failed: {result.ErrorMessage}", Severity.Error);
+                    System.Diagnostics.Debug.WriteLine($"❌ Export error: {result.ErrorMessage}");
+                }
+            }
+            else
+            {
+                Snackbar.Add("Unknown export format", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            System.Diagnostics.Debug.WriteLine($"❌ Exception: {ex.Message}");
+        }
     }
+
+
+
+
 
     private int GetWordCount(string content)
     {

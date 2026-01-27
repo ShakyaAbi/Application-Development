@@ -1,371 +1,448 @@
 @page "/profile"
+@page "/tags"
 @inject IStorageService Storage
+@inject IAuthenticationService AuthService
+@inject NavigationManager Navigation
+@using Courcework.Entities
 
 <MudStack Spacing="4" Class="page-stack">
-    <!-- Profile Hero -->
-    <MudPaper Class="profile-hero" Elevation="4">
+    <!-- Page Header -->
+    <MudPaper Class="page-hero" Elevation="4">
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h3" Class="hero-title"><strong>?? Manage Your Tags</strong></MudText>
+            <MudText Typo="Typo.body2" Class="muted">Organize and customize tags for your journal entries</MudText>
+        </MudStack>
+    </MudPaper>
+
+    <!-- Create New Tag Section -->
+    <MudPaper Class="create-tag-section" Elevation="3">
         <MudStack Spacing="3">
-            <MudAvatar Style="width: 80px; height: 80px; font-size: 40px;">JD</MudAvatar>
-            <div>
-                <MudText Typo="Typo.h4"><strong>Your Journaling Journey</strong></MudText>
-                <MudText Typo="Typo.body2" Class="muted">Track your progress and insights</MudText>
-            </div>
-        </MudStack>
-    </MudPaper>
+            <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>? Create New Tag</strong></MudText>
+            
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.End">
+                <MudTextField T="string" 
+                             @bind-Value="_newTagName"
+                             Label="Tag Name"
+                             Placeholder="Enter tag name..."
+                             Variant="Variant.Outlined"
+                             Class="flex-grow-1" />
+                
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <MudText Typo="Typo.caption" Class="muted">Color:</MudText>
+                    <input type="color" @bind="_newTagColor" style="width: 50px; height: 40px; border: none; border-radius: 4px; cursor: pointer;" />
+                </div>
+                
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary"
+                          Size="Size.Medium"
+                          OnClick="@CreateNewTag"
+                          StartIcon="@Icons.Material.Filled.Add">
+                    CREATE TAG
+                </MudButton>
+            </MudStack>
 
-    <!-- Key Statistics -->
-    <MudGrid Spacing="3">
-        <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="stat-card" Elevation="3">
-                <MudStack Spacing="2">
-                    <MudText Typo="Typo.caption" Class="muted">Total Entries</MudText>
-                    <MudText Typo="Typo.h3"><strong>@_totalEntries</strong></MudText>
-                    <MudText Typo="Typo.caption" Class="muted">journal entries created</MudText>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="stat-card" Elevation="3">
-                <MudStack Spacing="2">
-                    <MudText Typo="Typo.caption" Class="muted">Total Words</MudText>
-                    <MudText Typo="Typo.h3"><strong>@_totalWords.ToString("N0")</strong></MudText>
-                    <MudText Typo="Typo.caption" Class="muted">words written</MudText>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="stat-card" Elevation="3">
-                <MudStack Spacing="2">
-                    <MudText Typo="Typo.caption" Class="muted">Current Streak</MudText>
-                    <MudText Typo="Typo.h3"><strong>@_currentStreak</strong></MudText>
-                    <MudText Typo="Typo.caption" Class="muted">days in a row</MudText>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="stat-card" Elevation="3">
-                <MudStack Spacing="2">
-                    <MudText Typo="Typo.caption" Class="muted">Longest Streak</MudText>
-                    <MudText Typo="Typo.h3"><strong>@_longestStreak</strong></MudText>
-                    <MudText Typo="Typo.caption" Class="muted">best streak</MudText>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-
-    <!-- Insights Row -->
-    <MudGrid Spacing="3">
-        <!-- Average Words per Entry -->
-        <MudItem xs="12" md="6">
-            <MudPaper Class="insight-card" Elevation="3">
-                <MudStack Spacing="2">
-                    <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Average Words per Entry</strong></MudText>
-                    <MudText Typo="Typo.h5"><strong>@GetAverageWordsPerEntry()</strong> words</MudText>
-                    <MudProgressLinear Value="@Math.Min(GetAverageWordsPerEntry() / 5, 100)" Color="Color.Primary" Class="mt-3" />
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-
-        <!-- Mood Distribution -->
-        <MudItem xs="12" md="6">
-            <MudPaper Class="insight-card" Elevation="3">
-                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Primary Mood Distribution</strong></MudText>
-                @if (_moodStats.Count == 0)
-                {
-                    <MudText Typo="Typo.body2" Class="muted">No mood data yet</MudText>
-                }
-                else
-                {
-                    <MudStack Spacing="2" Class="mt-3">
-                        @foreach (var mood in _moodStats.Take(5))
-                        {
-                            <div style="display: flex; align-items: center; gap: 1rem;">
-                                <span style="min-width: 80px;">@mood.Key</span>
-                                <MudProgressLinear Value="@((mood.Value / (double)_totalEntries) * 100)" 
-                                                   Class="flex-grow-1"
-                                                   Color="GetMoodColor(mood.Key)" />
-                                <span style="min-width: 40px; text-align: right;">@mood.Value</span>
-                            </div>
-                        }
-                    </MudStack>
-                }
-            </MudPaper>
-        </MudItem>
-
-        <!-- Secondary Mood Distribution -->
-        <MudItem xs="12" md="6">
-            <MudPaper Class="insight-card" Elevation="3">
-                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Secondary Mood Distribution</strong></MudText>
-                @if (_secondaryMoodStats.Count == 0)
-                {
-                    <MudText Typo="Typo.body2" Class="muted">No secondary mood data yet</MudText>
-                }
-                else
-                {
-                    <MudStack Spacing="2" Class="mt-3">
-                        @foreach (var mood in _secondaryMoodStats.Take(5))
-                        {
-                            <div style="display: flex; align-items: center; gap: 1rem;">
-                                <span style="min-width: 80px;">@mood.Key</span>
-                                <MudProgressLinear Value="@((mood.Value / (double)_totalEntries) * 100)" 
-                                                   Class="flex-grow-1"
-                                                   Color="GetMoodColor(mood.Key)" />
-                                <span style="min-width: 40px; text-align: right;">@mood.Value</span>
-                            </div>
-                        }
-                    </MudStack>
-                }
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-
-    <!-- Writing Habits -->
-    <MudPaper Class="habits-card" Elevation="3">
-        <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Writing Habits</strong></MudText>
-        <MudStack Spacing="3" Class="mt-4">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>Entries per month</span>
-                <strong>@GetEntriesPerMonth()</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>Average entry length</span>
-                <strong>@GetAverageWordsPerEntry() words</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>Consistency score</span>
-                <strong>@GetConsistencyScore()%</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>Total writing time</span>
-                <strong>~@GetEstimatedWritingTime() hours</strong>
-            </div>
-        </MudStack>
-    </MudPaper>
-
-    <!-- Tags Used -->
-    <MudPaper Class="tags-card" Elevation="3">
-        <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Available Tags</strong></MudText>
-        <MudChipSet T="string" Class="tags-chipset mt-3">
-            @foreach (var tag in _availableTags)
+            @if (!string.IsNullOrEmpty(_tagMessage))
             {
-                <MudChip T="string" Value="@tag.Name" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Medium">
-                    <span style="display: inline-block; width: 12px; height: 12px; background-color: @tag.Color; border-radius: 50%; margin-right: 8px;"></span>
-                    @tag.Name
-                </MudChip>
+                <MudAlert Severity="@(_tagMessage.Contains("?") ? Severity.Success : Severity.Error)" 
+                         Variant="Variant.Filled"
+                         Dense="true">
+                    @_tagMessage
+                </MudAlert>
             }
-        </MudChipSet>
+        </MudStack>
     </MudPaper>
 
-    <!-- Tag Manager Component -->
-    <TagManager OnTagsChanged="@OnTagsRefreshed" />
+    <!-- Tag Statistics -->
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="stat-card" Elevation="3">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.caption" Class="muted">Total Tags</MudText>
+                    <MudText Typo="Typo.h4"><strong>@_allTags.Count</strong></MudText>
+                    <MudProgressLinear Value="@Math.Min(_allTags.Count / 10.0 * 100, 100)" Color="Color.Primary" />
+                </MudStack>
+            </MudPaper>
+        </MudItem>
 
-    <!-- Action Buttons -->
-    <MudStack Row="true" Spacing="2" Class="action-buttons">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Edit">
-            Edit Profile
-        </MudButton>
-        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Download">
-            Export Data
-        </MudButton>
-    </MudStack>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="stat-card" Elevation="3">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.caption" Class="muted">Pre-Built Tags</MudText>
+                    <MudText Typo="Typo.h4"><strong>@_preBuiltCount</strong></MudText>
+                    <MudProgressLinear Value="@Math.Min(_preBuiltCount / 40.0 * 100, 100)" Color="Color.Success" />
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="stat-card" Elevation="3">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.caption" Class="muted">Custom Tags</MudText>
+                    <MudText Typo="Typo.h4"><strong>@_customCount</strong></MudText>
+                    <MudProgressLinear Value="@Math.Min(_customCount / 20.0 * 100, 100)" Color="Color.Info" />
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="stat-card" Elevation="3">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.caption" Class="muted">Most Used</MudText>
+                    <MudText Typo="Typo.h6"><strong>@_mostUsedTag</strong></MudText>
+                    <MudProgressLinear Value="100" Color="Color.Warning" />
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Filter & Search -->
+    <MudPaper Class="filter-section" Elevation="3">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudTextField T="string" 
+                         Value="_searchTerm"
+                         ValueChanged="@(async (string value) => { _searchTerm = value; FilterTags(); })"
+                         Label="Search tags..."
+                         Variant="Variant.Outlined"
+                         StartAdornment="@Icons.Material.Filled.Search"
+                         Class="flex-grow-1" />
+            
+            <MudSelect T="string" 
+                      Value="_filterCategory"
+                      ValueChanged="@(async (string value) => { _filterCategory = value; FilterTags(); })"
+                      Label="Filter by category"
+                      Variant="Variant.Outlined"
+                      Class="flex-grow-1">
+                <MudSelectItem Value="@("")">All Tags</MudSelectItem>
+                <MudSelectItem Value="@("work")">Work & Career</MudSelectItem>
+                <MudSelectItem Value="@("health")">Health & Fitness</MudSelectItem>
+                <MudSelectItem Value="@("relationships")">Relationships</MudSelectItem>
+                <MudSelectItem Value="@("personal")">Personal Growth</MudSelectItem>
+                <MudSelectItem Value="@("custom")">Custom Only</MudSelectItem>
+            </MudSelect>
+        </MudStack>
+    </MudPaper>
+
+    <!-- Tags Display -->
+    <MudPaper Class="tags-section" Elevation="3">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true" Class="mb-4">
+            <strong>? All Tags (@_filteredTags.Count)</strong>
+        </MudText>
+
+        @if (_filteredTags.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled">
+                No tags found matching your filters
+            </MudAlert>
+        }
+        else
+        {
+            <MudGrid Spacing="2">
+                @foreach (var tag in _filteredTags)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <div style="border-left: 5px solid @tag.Color; padding: 1rem; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s ease; cursor: pointer;" 
+                             @onmouseenter="@((MouseEventArgs e) => { })"
+                             class="tag-item-wrapper">
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudStack Spacing="1" Style="flex: 1;">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <div style="width: 16px; height: 16px; background-color: @tag.Color; border-radius: 50%;"></div>
+                                        <MudText Typo="Typo.body2"><strong>@tag.Name</strong></MudText>
+                                    </MudStack>
+                                    <MudText Typo="Typo.caption" Class="muted">
+                                        @GetTagCategory(tag.Name)
+                                    </MudText>
+                                </MudStack>
+
+                                <MudStack Row="true" Spacing="1">
+                                    @if (IsCustomTag(tag.Name))
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                      Color="Color.Error"
+                                                      Size="Size.Small"
+                                                      OnClick="@(() => DeleteTag(tag.Id))" />
+                                    }
+                                    else
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Lock" 
+                                                      Color="Color.Default"
+                                                      Size="Size.Small"
+                                                      Disabled="true"
+                                                      Title="Pre-built tag" />
+                                    }
+                                </MudStack>
+                            </MudStack>
+                        </div>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    </MudPaper>
+
+    <!-- Category Legend -->
+    <MudPaper Class="legend-section" Elevation="2">
+        <MudText Typo="Typo.body2" Class="mb-3"><strong>?? Tag Categories:</strong></MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="6" sm="3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <div style="width: 12px; height: 12px; background-color: #1976d2; border-radius: 3px;"></div>
+                    <MudText Typo="Typo.caption">Work & Career</MudText>
+                </MudStack>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <div style="width: 12px; height: 12px; background-color: #f44336; border-radius: 3px;"></div>
+                    <MudText Typo="Typo.caption">Health & Fitness</MudText>
+                </MudStack>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <div style="width: 12px; height: 12px; background-color: #e91e63; border-radius: 3px;"></div>
+                    <MudText Typo="Typo.caption">Relationships</MudText>
+                </MudStack>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <div style="width: 12px; height: 12px; background-color: #7b1fa2; border-radius: 3px;"></div>
+                    <MudText Typo="Typo.caption">Personal Growth</MudText>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
 </MudStack>
 
-@code {
-    private int _totalEntries = 0;
-    private int _totalWords = 0;
-    private int _currentStreak = 0;
-    private int _longestStreak = 0;
-    private List<JournalEntry> _allEntries = new();
-    private List<Tag> _availableTags = new();
-    private Dictionary<string, int> _moodStats = new();
-    private Dictionary<string, int> _secondaryMoodStats = new();
-
-    protected override async Task OnInitializedAsync()
-    {
-        await Storage.InitializeAsync();
-        await LoadProfileData();
-    }
-
-    private async Task LoadProfileData()
-    {
-        // Load all entries
-        var entriesResult = await Storage.GetAllEntriesAsync();
-        if (entriesResult.Success)
-        {
-            _allEntries = entriesResult.Data ?? new();
-        }
-
-        // Load statistics
-        var statsResult = await Storage.GetStatisticsAsync();
-        if (statsResult.Success)
-        {
-            _totalEntries = statsResult.Data.TotalEntries;
-            _currentStreak = statsResult.Data.CurrentStreak;
-            _longestStreak = statsResult.Data.LongestStreak;
-        }
-
-        // Load word count
-        var wordCountResult = await Storage.GetTotalWordCountAsync();
-        if (wordCountResult.Success)
-        {
-            _totalWords = wordCountResult.Data;
-        }
-
-        // Load tags
-        var tagsResult = await Storage.GetAllTagsAsync();
-        if (tagsResult.Success)
-        {
-            _availableTags = tagsResult.Data ?? new();
-        }
-
-        // Calculate mood statistics
-        _moodStats = _allEntries
-            .Where(e => !string.IsNullOrEmpty(e.Mood))
-            .GroupBy(e => e.Mood)
-            .OrderByDescending(g => g.Count())
-            .ToDictionary(g => g.Key, g => g.Count());
-
-        // Calculate secondary mood statistics
-        _secondaryMoodStats = _allEntries
-            .Where(e => !string.IsNullOrEmpty(e.SecondaryMood))
-            .GroupBy(e => e.SecondaryMood)
-            .OrderByDescending(g => g.Count())
-            .ToDictionary(g => g.Key, g => g.Count());
-    }
-
-    private int GetAverageWordsPerEntry()
-    {
-        if (_totalEntries == 0) return 0;
-        return _totalWords / _totalEntries;
-    }
-
-    private int GetEntriesPerMonth()
-    {
-        if (_totalEntries == 0) return 0;
-        if (_allEntries.Count < 2) return _totalEntries;
-        
-        var maxDate = _allEntries.Max(e => e.Date);
-        var minDate = _allEntries.Min(e => e.Date);
-        var daysDiff = maxDate.DayNumber - minDate.DayNumber;
-        var monthsActive = daysDiff / 30;
-        if (monthsActive == 0) monthsActive = 1;
-        return _totalEntries / monthsActive;
-    }
-
-    private int GetConsistencyScore()
-    {
-        if (_longestStreak == 0) return 0;
-        // Score based on current streak vs longest streak
-        return Math.Min((int)((_currentStreak / (double)_longestStreak) * 100), 100);
-    }
-
-    private int GetEstimatedWritingTime()
-    {
-        // Estimate 5 minutes per 100 words
-        return _totalWords / 100 / 12; // 12 = 5 min per 100 words
-    }
-
-    private Color GetMoodColor(string mood)
-    {
-        return mood switch
-        {
-            "Happy" => Color.Success,
-            "Calm" => Color.Info,
-            "Stressed" => Color.Warning,
-            "Grateful" => Color.Success,
-            "Curious" => Color.Secondary,
-            "Hopeful" => Color.Success,
-            "Anxious" => Color.Warning,
-            "Melancholic" => Color.Warning,
-            "Energetic" => Color.Success,
-            "Peaceful" => Color.Info,
-            _ => Color.Primary
-        };
-    }
-
-    private async Task OnTagsRefreshed()
-    {
-        // Refresh the tags list
-        var tagsResult = await Storage.GetAllTagsAsync();
-        if (tagsResult.Success)
-        {
-            _availableTags = tagsResult.Data ?? new();
-        }
-    }
-}
-
 <style>
-.page-stack {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 1rem;
-}
-
-.profile-hero {
-    padding: 2.5rem;
+.page-hero {
+    padding: 2rem;
     background: linear-gradient(135deg, #1976d2, #1565c0);
     color: white;
     border-radius: 12px;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.hero-title {
+    color: white;
+}
+
+.create-tag-section {
+    padding: 1.75rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .stat-card {
+    padding: 1.5rem;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.filter-section {
+    padding: 1.5rem;
+    border-radius: 10px;
+}
+
+.tags-section {
     padding: 1.75rem;
     border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.tag-item {
     transition: all 0.3s ease;
+    cursor: pointer;
 }
 
-.stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+.tag-item:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-2px);
 }
 
-.insight-card {
-    padding: 1.75rem;
+.legend-section {
+    padding: 1.5rem;
     border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.habits-card {
-    padding: 1.75rem;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.tags-card {
-    padding: 1.75rem;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.tags-chipset {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-}
-
-.action-buttons {
-    padding: 1rem 0;
-    justify-content: center;
-}
-
-.muted {
-    opacity: 0.7;
-}
-
-.mt-3 {
-    margin-top: 1rem;
-}
-
-.mt-4 {
-    margin-top: 1.5rem;
+    background: rgba(25, 118, 210, 0.05);
 }
 
 .flex-grow-1 {
     flex: 1;
 }
+
+.mb-3 {
+    margin-bottom: 1rem;
+}
+
+.mb-4 {
+    margin-bottom: 1.5rem;
+}
+
+:deep(.mud-dark .stat-card) {
+    background-color: #424242 !important;
+}
+
+:deep(.mud-dark .filter-section) {
+    background-color: #424242 !important;
+}
+
+:deep(.mud-dark .create-tag-section) {
+    background-color: #424242 !important;
+}
+
+:deep(.mud-dark .tags-section) {
+    background-color: #424242 !important;
+}
+
+:deep(.mud-dark .legend-section) {
+    background-color: #3a3a3a !important;
+}
 </style>
+
+@code {
+    private List<Tag> _allTags = new();
+    private List<Tag> _filteredTags = new();
+    private string _searchTerm = "";
+    private string _filterCategory = "";
+    private string _newTagName = "";
+    private string _newTagColor = "#1976d2";
+    private string _tagMessage = "";
+    private int _preBuiltCount = 0;
+    private int _customCount = 0;
+    private string _mostUsedTag = "—";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Check authentication
+        var currentUser = await AuthService.GetCurrentUserAsync();
+        if (currentUser == null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadTags();
+    }
+
+    private async Task LoadTags()
+    {
+        try
+        {
+            var result = await Storage.GetAllTagsAsync();
+            if (result.Success)
+            {
+                _allTags = result.Data ?? new();
+                
+                // Count pre-built vs custom
+                var preBuiltNames = new[] { "Work", "Career", "Studies", "Projects", "Planning", "Family", "Friends", "Relationships", "Parenting", "Health", "Fitness", "Exercise", "Yoga", "Meditation", "Self-care", "Personal Growth", "Spirituality", "Reflection", "Reading", "Writing", "Hobbies", "Music", "Cooking", "Shopping", "Travel", "Nature", "Vacation", "Finance", "Birthday", "Holiday", "Celebration", "Gratitude", "Ideas" };
+                
+                _preBuiltCount = _allTags.Count(t => preBuiltNames.Contains(t.Name));
+                _customCount = _allTags.Count - _preBuiltCount;
+                
+                // Get most used tag (for now, just show first)
+                _mostUsedTag = _allTags.FirstOrDefault()?.Name ?? "—";
+                
+                FilterTags();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading tags: {ex.Message}");
+        }
+    }
+
+    private void FilterTags()
+    {
+        _filteredTags = _allTags
+            .Where(t => 
+            {
+                // Search filter
+                if (!string.IsNullOrEmpty(_searchTerm) && 
+                    !t.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                // Category filter
+                if (!string.IsNullOrEmpty(_filterCategory))
+                {
+                    if (_filterCategory == "custom" && IsPreBuiltTag(t.Name))
+                        return false;
+                    
+                    var category = GetTagCategory(t.Name);
+                    if (!category.Contains(_filterCategory, StringComparison.OrdinalIgnoreCase))
+                        return false;
+                }
+
+                return true;
+            })
+            .OrderBy(t => t.Name)
+            .ToList();
+    }
+
+    private async Task CreateNewTag()
+    {
+        _tagMessage = "";
+
+        if (string.IsNullOrWhiteSpace(_newTagName))
+        {
+            _tagMessage = "? Please enter a tag name";
+            return;
+        }
+
+        if (_newTagName.Length > 50)
+        {
+            _tagMessage = "? Tag name too long (max 50 characters)";
+            return;
+        }
+
+        var result = await Storage.AddTagAsync(_newTagName, _newTagColor);
+        
+        if (result.Success)
+        {
+            _tagMessage = $"? Tag '{_newTagName}' created successfully!";
+            _newTagName = "";
+            _newTagColor = "#1976d2";
+            await LoadTags();
+        }
+        else
+        {
+            _tagMessage = $"? {result.ErrorMessage}";
+        }
+    }
+
+    private async Task DeleteTag(Guid tagId)
+    {
+        var tag = _allTags.FirstOrDefault(t => t.Id == tagId);
+        if (tag == null) return;
+
+        if (IsPreBuiltTag(tag.Name))
+        {
+            _tagMessage = "? Cannot delete pre-built tags";
+            return;
+        }
+
+        _allTags.Remove(tag);
+        await LoadTags();
+        _tagMessage = $"? Tag '{tag.Name}' deleted";
+    }
+
+    private string GetTagCategory(string tagName)
+    {
+        return tagName switch
+        {
+            "Work" or "Career" or "Studies" or "Projects" or "Planning" => "Work & Career",
+            "Family" or "Friends" or "Relationships" or "Parenting" => "Relationships",
+            "Health" or "Fitness" or "Exercise" or "Yoga" or "Meditation" or "Self-care" => "Health & Fitness",
+            "Personal Growth" or "Spirituality" or "Reflection" or "Reading" or "Writing" => "Personal Growth",
+            "Hobbies" or "Music" or "Cooking" or "Shopping" => "Hobbies & Leisure",
+            "Travel" or "Nature" or "Vacation" => "Travel & Nature",
+            "Finance" => "Finance",
+            "Birthday" or "Holiday" or "Celebration" => "Special Events",
+            "Gratitude" or "Ideas" => "Gratitude & Ideas",
+            _ => "Custom"
+        };
+    }
+
+    private bool IsPreBuiltTag(string tagName)
+    {
+        var preBuiltNames = new[] { "Work", "Career", "Studies", "Projects", "Planning", "Family", "Friends", "Relationships", "Parenting", "Health", "Fitness", "Exercise", "Yoga", "Meditation", "Self-care", "Personal Growth", "Spirituality", "Reflection", "Reading", "Writing", "Hobbies", "Music", "Cooking", "Shopping", "Travel", "Nature", "Vacation", "Finance", "Birthday", "Holiday", "Celebration", "Gratitude", "Ideas" };
+        return preBuiltNames.Contains(tagName);
+    }
+
+    private bool IsCustomTag(string tagName) => !IsPreBuiltTag(tagName);
+}

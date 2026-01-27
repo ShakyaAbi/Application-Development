@@ -49,10 +49,5 @@ namespace Courcework.Entities
         /// User's preferred theme (light/dark)
         /// </summary>
         public string PreferredTheme { get; set; } = "light";
-
-        /// <summary>
-        /// Journal entries owned by this user (for future multi-user support)
-        /// </summary>
-        public List<Guid> JournalEntryIds { get; set; } = new();
     }
 }

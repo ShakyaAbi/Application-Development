@@ -1,5 +1,6 @@
 ﻿@inherits LayoutComponentBase
 @inject NavigationManager Navigation
+@inject IAuthenticationService AuthService
 
 <MudThemeProvider Theme="@_customTheme" IsDarkMode="@_isDark" />
 <MudDialogProvider />
@@ -25,13 +26,26 @@
         </MudDrawerHeader>
         
         <MudNavMenu>
-            @foreach (var item in _navItems)
+            @foreach (var item in _navItems.Where(x => x.Label != "Logout"))
             {
                 <MudNavLink Href="@item.Href" Icon="@item.Icon" Match="NavLinkMatch.All">
                     @item.Label
                 </MudNavLink>
             }
         </MudNavMenu>
+
+        <!-- ✅ LOGOUT - As NavLink Style -->
+        <div class="px-4 py-2">
+            <MudButton Variant="Variant.Text"
+                      Color="Color.Error"
+                      FullWidth="true"
+                      Class="d-flex justify-start"
+                      OnClick="@HandleLogout"
+                      StartIcon="@Icons.Material.Filled.Logout"
+                      Style="text-transform: none; font-weight: 500; padding: 8px 16px; justify-content: flex-start;">
+                Logout
+            </MudButton>
+        </div>
 
         <MudDivider Class="my-2" />
         
@@ -95,8 +109,8 @@
         new("Today", "/today", Icons.Material.Filled.EditCalendar),
         new("Calendar", "/calendar", Icons.Material.Filled.Event),
         new("Timeline", "/timeline", Icons.Material.Filled.ViewTimeline),
-        new("Profile", "/profile", Icons.Material.Filled.Person),
-        new("Logout", "/login", Icons.Material.Filled.Logout)
+        new("Profile", "/profile", Icons.Material.Filled.Person)
+        // ✅ Logout removed - handled separately with button
     ];
 
     protected override void OnInitialized()
@@ -116,6 +130,27 @@
     {
         _isDark = isDark;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// ✅ Handle logout - Clear session and redirect to login
+    /// </summary>
+    private async Task HandleLogout()
+    {
+        try
+        {
+            // ✅ CALL LOGOUT ASYNC TO CLEAR SESSION
+            await AuthService.LogoutAsync();
+            
+            System.Diagnostics.Debug.WriteLine("User logged out successfully");
+            
+            // ✅ REDIRECT TO LOGIN PAGE
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Logout error: {ex.Message}");
+        }
     }
 
     public void UpdatePageTitle(string title)

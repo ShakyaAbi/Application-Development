@@ -1,5 +1,7 @@
 ﻿@page "/timeline"
 @inject IStorageService Storage
+@inject NavigationManager Navigation
+@inject IAuthenticationService AuthService
 @using System.Text.RegularExpressions
 @using System.Linq
 
@@ -153,11 +155,11 @@
                 <MudDivider Class="my-2" />
                 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.End">
                     <MudDatePicker Value="@_startDate"
-                                   ValueChanged="@OnStartDateChanged"
+                                   ValueChanged="@(async (DateTime? value) => await OnStartDateChanged(value))"
                                    Label="Start Date"
                                    Variant="Variant.Outlined" />
                     <MudDatePicker Value="@_endDate"
-                                   ValueChanged="@OnEndDateChanged"
+                                   ValueChanged="@(async (DateTime? value) => await OnEndDateChanged(value))"
                                    Label="End Date"
                                    Variant="Variant.Outlined" />
                     <MudButton Variant="Variant.Text"
@@ -176,25 +178,25 @@
                     <MudText Typo="Typo.caption" Class="filter-label">Active filters:</MudText>
                     @if (!string.IsNullOrEmpty(_selectedMood))
                     {
-                        <MudChip T="string" Color="Color.Primary" OnClose="@(() => OnMoodChanged(""))">
+                        <MudChip T="string" Color="Color.Primary" OnClose="@(async () => await OnMoodChanged(""))">
                             Mood: @_selectedMood
                         </MudChip>
                     }
                     @if (!string.IsNullOrEmpty(_selectedSecondaryMood))
                     {
-                        <MudChip T="string" Color="Color.Secondary" OnClose="@(() => OnSecondaryMoodChanged(""))">
+                        <MudChip T="string" Color="Color.Secondary" OnClose="@(async () => await OnSecondaryMoodChanged(""))">
                             Secondary: @_selectedSecondaryMood
                         </MudChip>
                     }
                     @if (!string.IsNullOrEmpty(_selectedTag))
                     {
-                        <MudChip T="string" Color="Color.Info" OnClose="@(() => OnTagChanged(""))">
+                        <MudChip T="string" Color="Color.Info" OnClose="@(async () => await OnTagChanged(""))">
                             Tag: @_selectedTag
                         </MudChip>
                     }
                     @if (_startDate.HasValue || _endDate.HasValue)
                     {
-                        <MudChip T="string" Color="Color.Warning" OnClose="@(() => { _startDate = null; _endDate = null; ApplyFilters(); })">
+                        <MudChip T="string" Color="Color.Warning" OnClose="@(async () => { _startDate = null; _endDate = null; await ApplyFilters(); })">
                             Dates: @_startDate?.ToString("MMM dd") - @_endDate?.ToString("MMM dd")
                         </MudChip>
                     }
@@ -342,23 +344,45 @@
     {
         try
         {
+            // ✅ CHECK AUTHENTICATION - MUST BE LOGGED IN
+            var currentUser = await AuthService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine("=== TIMELINE LOADING STARTING ===");
+            
             await Storage.InitializeAsync();
             System.Diagnostics.Debug.WriteLine("✓ Storage initialized");
             
             await LoadAllEntries();
-            System.Diagnostics.Debug.WriteLine($"✓ Entries loaded: {_allEntries.Count}");
+            System.Diagnostics.Debug.WriteLine($"✓ Entries loaded: {_allEntries.Count} total");
+            
+            // Debug: Show ALL entries with their mood values
+            foreach (var entry in _allEntries.Take(5))
+            {
+                System.Diagnostics.Debug.WriteLine($"  - Entry {entry.Date}: Mood='{entry.Mood}', Secondary='{entry.SecondaryMood}'");
+            }
             
             await LoadAvailableTags();
             System.Diagnostics.Debug.WriteLine($"✓ Tags loaded: {_availableTags.Count}");
             
             await LoadAvailableMoods();
-            System.Diagnostics.Debug.WriteLine($"✓ Moods loaded - Primary: {_availableMoods.Count}, Secondary: {_availableSecondaryMoods.Count}");
+            System.Diagnostics.Debug.WriteLine($"✓ MOODS LOADED - Primary: {_availableMoods.Count}, Secondary: {_availableSecondaryMoods.Count}");
             
+            if (_availableMoods.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine("⚠️ WARNING: No moods found! Check if entries have mood values in the database.");
+            }
+            
+            System.Diagnostics.Debug.WriteLine("=== TIMELINE LOADING COMPLETE ===\n");
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"✗ Error in OnInitializedAsync: {ex.Message}\n{ex.StackTrace}");
+            System.Diagnostics.Debug.WriteLine($"✗ CRITICAL ERROR in OnInitializedAsync: {ex.Message}\n{ex.StackTrace}");
         }
     }
 
@@ -373,14 +397,9 @@
                 _allEntries = result.Data;
                 _displayEntries = _allEntries.OrderByDescending(e => e.Date).ToList();
                 
-                // Debug: Show mood distribution
-                var moodCounts = _allEntries
-                    .Where(e => !string.IsNullOrEmpty(e.Mood))
-                    .GroupBy(e => e.Mood)
-                    .Select(g => $"{g.Key}({g.Count()})")
-                    .ToList();
-                    
-                System.Diagnostics.Debug.WriteLine($"Mood distribution: {string.Join(", ", moodCounts)}");
+                // Debug mood values
+                var entriesWithMood = _allEntries.Where(e => !string.IsNullOrEmpty(e.Mood)).Count();
+                System.Diagnostics.Debug.WriteLine($"  Entries with Mood: {entriesWithMood}/{_allEntries.Count}");
             }
             else
             {
@@ -439,8 +458,19 @@
                 .OrderBy(m => m)
                 .ToList();
                 
-            System.Diagnostics.Debug.WriteLine($"Primary moods: {string.Join(", ", _availableMoods)}");
-            System.Diagnostics.Debug.WriteLine($"Secondary moods: {string.Join(", ", _availableSecondaryMoods)}");
+            if (_availableMoods.Count > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Primary moods found: {string.Join(", ", _availableMoods)}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("  ⚠️ No primary moods found!");
+            }
+            
+            if (_availableSecondaryMoods.Count > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Secondary moods found: {string.Join(", ", _availableSecondaryMoods)}");
+            }
         }
         catch (Exception ex)
         {

@@ -80,6 +80,9 @@ namespace Courcework.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).ValueGeneratedNever();
 
+                entity.Property(e => e.UserId)
+                    .IsRequired();
+
                 entity.Property(e => e.Title)
                     .HasMaxLength(500)
                     .IsRequired(false);
@@ -111,15 +114,19 @@ namespace Courcework.Data
                 entity.Property(e => e.IsRichText)
                     .HasDefaultValue(false);
 
-                // Create index on Date for quick lookups
-                entity.HasIndex(e => e.Date).IsUnique();
+                // ? CREATE COMPOSITE INDEX: Each user can only have ONE entry per date
+                entity.HasIndex(e => new { e.UserId, e.Date }).IsUnique();
             });
+
 
             // Configure Tag entity
             modelBuilder.Entity<Tag>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).ValueGeneratedNever();
+
+                entity.Property(e => e.UserId)
+                    .IsRequired();
 
                 entity.Property(e => e.Name)
                     .HasMaxLength(100)
@@ -129,8 +136,8 @@ namespace Courcework.Data
                     .HasMaxLength(7)
                     .IsRequired();
 
-                // Tag names must be unique
-                entity.HasIndex(e => e.Name).IsUnique();
+                // ? COMPOSITE UNIQUE INDEX: Each user can have unique tag names
+                entity.HasIndex(e => new { e.UserId, e.Name }).IsUnique();
             });
         }
     }

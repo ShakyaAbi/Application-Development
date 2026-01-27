@@ -1,6 +1,7 @@
 ﻿@page "/calendar"
 @inject IStorageService Storage
 @inject NavigationManager Navigation
+@inject IAuthenticationService AuthService
 
 <MudStack Spacing="4" Class="page-stack">
     <MudPaper Class="calendar-header" Elevation="3">
@@ -83,6 +84,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // ✅ CHECK AUTHENTICATION - MUST BE LOGGED IN
+        var currentUser = await AuthService.GetCurrentUserAsync();
+        if (currentUser == null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
         await Storage.InitializeAsync();
         _currentDate = DateOnly.FromDateTime(DateTime.Today);
         await LoadMonthEntries();

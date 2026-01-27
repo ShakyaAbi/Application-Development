@@ -1,6 +1,9 @@
 ﻿@page "/today"
 @inject IStorageService Storage
+@inject ICategoryService CategoryService
 @inject NavigationManager Navigation
+@inject IAuthenticationService AuthService
+@using Courcework.Constants
 
 <MudStack Spacing="4" Class="page-stack">
     <!-- Alert Messages -->
@@ -35,14 +38,47 @@
     <!-- Quick Mood Selector -->
     <MudPaper Class="mood-selector" Elevation="3">
         <MudStack Spacing="3">
-            <!-- Primary Mood -->
+            <!-- Primary Mood by Category -->
             <div>
                 <MudText Typo="Typo.body2" Class="mb-2" GutterBottom="true"><strong>Primary Mood</strong></MudText>
-                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
-                    @foreach (var mood in new[] { "Happy", "Calm", "Stressed", "Grateful", "Curious" })
+                
+                <!-- ✅ POSITIVE MOODS -->
+                <MudText Typo="Typo.caption" Class="mt-2 mb-1" Style="color: #4caf50; font-weight: bold;">Positive</MudText>
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mb-3">
+                    @foreach (var mood in MoodConstants.PositiveMoods)
                     {
                         <MudButton Variant="@(_currentEntry?.Mood == mood ? Variant.Filled : Variant.Outlined)" 
-                                   Color="Color.Primary" 
+                                   Color="Color.Success" 
+                                   Size="Size.Small"
+                                   Class="mood-button"
+                                   OnClick="@(() => { if (_currentEntry != null) { _currentEntry.Mood = mood; StateHasChanged(); } })">
+                            @mood
+                        </MudButton>
+                    }
+                </MudStack>
+                
+                <!-- ✅ NEUTRAL MOODS -->
+                <MudText Typo="Typo.caption" Class="mt-2 mb-1" Style="color: #2196f3; font-weight: bold;">Neutral</MudText>
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mb-3">
+                    @foreach (var mood in MoodConstants.NeutralMoods)
+                    {
+                        <MudButton Variant="@(_currentEntry?.Mood == mood ? Variant.Filled : Variant.Outlined)" 
+                                   Color="Color.Info" 
+                                   Size="Size.Small"
+                                   Class="mood-button"
+                                   OnClick="@(() => { if (_currentEntry != null) { _currentEntry.Mood = mood; StateHasChanged(); } })">
+                            @mood
+                        </MudButton>
+                    }
+                </MudStack>
+                
+                <!-- ✅ NEGATIVE MOODS -->
+                <MudText Typo="Typo.caption" Class="mt-2 mb-1" Style="color: #f44336; font-weight: bold;">Negative</MudText>
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                    @foreach (var mood in MoodConstants.NegativeMoods)
+                    {
+                        <MudButton Variant="@(_currentEntry?.Mood == mood ? Variant.Filled : Variant.Outlined)" 
+                                   Color="Color.Error" 
                                    Size="Size.Small"
                                    Class="mood-button"
                                    OnClick="@(() => { if (_currentEntry != null) { _currentEntry.Mood = mood; StateHasChanged(); } })">
@@ -52,21 +88,21 @@
                 </MudStack>
             </div>
 
-            <!-- Secondary Mood -->
+            <!-- Secondary Mood (Optional with All Moods) -->
             <div>
                 <MudText Typo="Typo.body2" Class="mb-2" GutterBottom="true"><strong>Secondary Mood (optional)</strong></MudText>
-                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
                     <MudButton Variant="@(string.IsNullOrEmpty(_currentEntry?.SecondaryMood) ? Variant.Filled : Variant.Outlined)"
-                               Color="Color.Secondary"
+                               Color="Color.Default"
                                Size="Size.Small"
                                Class="mood-button"
                                OnClick="@(() => { if (_currentEntry != null) _currentEntry.SecondaryMood = ""; StateHasChanged(); })">
                         None
                     </MudButton>
-                    @foreach (var mood in new[] { "Hopeful", "Anxious", "Melancholic", "Energetic", "Peaceful" })
+                    @foreach (var mood in MoodConstants.GetAllMoods())
                     {
                         <MudButton Variant="@(_currentEntry?.SecondaryMood == mood ? Variant.Filled : Variant.Outlined)" 
-                                   Color="Color.Secondary" 
+                                   Color="Color.Primary" 
                                    Size="Size.Small"
                                    Class="mood-button"
                                    OnClick="@(() => { if (_currentEntry != null) { _currentEntry.SecondaryMood = mood; StateHasChanged(); } })">
@@ -120,19 +156,51 @@
     <!-- Category & Tags -->
     <MudPaper Class="category-tags" Elevation="3">
         <MudStack Spacing="3">
+            <!-- Category Selection -->
             <div>
                 <MudText Typo="Typo.body2" GutterBottom="true"><strong>Category</strong></MudText>
-                <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
-                    @foreach (var category in new[] { "Personal", "Work", "Health" })
+                <MudStack Spacing="2">
+                    <!-- Category Group Selection -->
+                    @if (_categoryGroups != null && _categoryGroups.Any())
                     {
-                        <MudButton Variant="@(_currentEntry?.Category == category ? Variant.Filled : Variant.Outlined)"
-                                   OnClick="@(() => { if (_currentEntry != null) _currentEntry.Category = category; })">
-                            @category
-                        </MudButton>
+                        <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                            @foreach (var group in _categoryGroups)
+                            {
+                                <MudButton Variant="@(_selectedCategoryGroup == group ? Variant.Filled : Variant.Outlined)"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           OnClick="@(() => OnGroupSelected(group))">
+                                    @group
+                                </MudButton>
+                            }
+                        </MudStack>
                     }
-                </MudButtonGroup>
+                    
+                    <!-- Category Options -->
+                    @if (_categoriesInGroup != null && _categoriesInGroup.Any())
+                    {
+                        <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                            @foreach (var category in _categoriesInGroup)
+                            {
+                                <MudButton Variant="@(_currentEntry?.Category == category ? Variant.Filled : Variant.Outlined)"
+                                           Color="Color.Secondary"
+                                           Size="Size.Small"
+                                           OnClick="@(() => { if (_currentEntry != null) _currentEntry.Category = category; })">
+                                    @category
+                                </MudButton>
+                            }
+                        </MudStack>
+                    }
+                </MudStack>
+                
+                <!-- Currently Selected Category -->
+                @if (!string.IsNullOrEmpty(_currentEntry?.Category))
+                {
+                    <MudText Typo="Typo.caption" Class="mt-2"><strong>Selected:</strong> @_currentEntry.Category</MudText>
+                }
             </div>
 
+            <!-- Tags Selection -->
             <div>
                 <MudText Typo="Typo.caption" Class="muted mb-3"><strong>Tags</strong></MudText>
                 <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
@@ -178,6 +246,9 @@
     private JournalEntry _currentEntry = new();
     private DateOnly _currentDate;
     private List<Tag> _availableTags = new();
+    private List<string> _categoryGroups = new();
+    private List<string> _categoriesInGroup = new();
+    private string _selectedCategoryGroup = "";
     private string _successMessage = "";
     private string _errorMessage = "";
     private bool _useRichText = false;
@@ -185,6 +256,17 @@
     protected override async Task OnInitializedAsync()
     {
         await Storage.InitializeAsync();
+        
+        // ✅ CHECK AUTHENTICATION - MUST BE LOGGED IN
+        var currentUser = await AuthService.GetCurrentUserAsync();
+        if (currentUser == null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+        
+        // Load category groups
+        await LoadCategoryGroups();
         
         // Check for date parameter from URL
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
@@ -220,6 +302,60 @@
         await LoadEntryForDate();
     }
 
+    /// <summary>
+    /// Load all available category groups from the Category Service
+    /// </summary>
+    private async Task LoadCategoryGroups()
+    {
+        try
+        {
+            // Simplified category groups
+            _categoryGroups = new List<string>
+            {
+                "Work", "Health", "Relationships", "Interests", "Events"
+            };
+            
+            if (_categoryGroups.Any())
+            {
+                _selectedCategoryGroup = _categoryGroups.First();
+                await OnGroupSelected(_selectedCategoryGroup);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading category groups: {ex.Message}");
+            _errorMessage = "Failed to load categories";
+        }
+    }
+
+    /// <summary>
+    /// Load categories for the selected group
+    /// </summary>
+    private async Task OnGroupSelected(string group)
+    {
+        _selectedCategoryGroup = group;
+        
+        try
+        {
+            var result = await CategoryService.GetCategoriesByTypeAsync(group);
+            
+            if (result.Success && result.Data != null)
+            {
+                _categoriesInGroup = result.Data.OrderBy(c => c).ToList();
+            }
+            else
+            {
+                _categoriesInGroup = new();
+                _errorMessage = result?.ErrorMessage ?? "Failed to load categories";
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading {group} categories: {ex.Message}");
+            _categoriesInGroup = new();
+        }
+    }
+
     private string ExtractQueryParam(string query, string paramName)
     {
         var param = $"{paramName}=";
@@ -250,24 +386,46 @@
 
     private async Task SaveEntry()
     {
-        if (string.IsNullOrWhiteSpace(_currentEntry.Content))
+        try
         {
-            _errorMessage = "Content is required";
-            return;
-        }
+            if (string.IsNullOrWhiteSpace(_currentEntry.Content))
+            {
+                _errorMessage = "Content is required";
+                return;
+            }
 
-        _currentEntry.Date = _currentDate;
-        _currentEntry.IsRichText = _useRichText;
-        var result = await Storage.SaveEntryAsync(_currentEntry);
-        
-        if (result.Success)
-        {
-            _successMessage = "Entry saved successfully!";
-            _errorMessage = "";
+            // ✅ ENSURE ALL REQUIRED FIELDS ARE SET
+            _currentEntry.Date = _currentDate;
+            _currentEntry.IsRichText = _useRichText;
+            
+            // ✅ ENSURE TAGS IS NOT NULL
+            if (_currentEntry.Tags == null)
+            {
+                _currentEntry.Tags = new();
+            }
+
+            System.Diagnostics.Debug.WriteLine($"Saving entry - Date: {_currentEntry.Date}, Content length: {_currentEntry.Content.Length}");
+
+            var result = await Storage.SaveEntryAsync(_currentEntry);
+            
+            if (result.Success)
+            {
+                _successMessage = "Entry saved successfully!";
+                _errorMessage = "";
+                System.Diagnostics.Debug.WriteLine("✅ Entry saved successfully");
+            }
+            else
+            {
+                _errorMessage = result.ErrorMessage ?? "Failed to save entry";
+                System.Diagnostics.Debug.WriteLine($"❌ Save failed: {_errorMessage}");
+                _successMessage = "";
+            }
         }
-        else
+        catch (Exception ex)
         {
-            _errorMessage = result.ErrorMessage ?? "Failed to save entry";
+            _errorMessage = $"Error saving entry: {ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"❌ Exception: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ Inner Exception: {ex.InnerException?.Message}");
             _successMessage = "";
         }
     }

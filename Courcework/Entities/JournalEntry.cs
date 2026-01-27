@@ -3,6 +3,7 @@ namespace Courcework.Entities
     public class JournalEntry
     {
         public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid UserId { get; set; }  // ? Link to User
         public string Title { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
         public DateOnly Date { get; set; }
