@@ -1,8 +1,8 @@
 namespace Courcework.Services
 {
-    /// <summary>
+    
     /// Implementation of secure storage using MAUI SecureStorage
-    /// </summary>
+    
     public class SecureStorageService : ISecureStorageService
     {
         public async Task SetAsync(string key, string value)

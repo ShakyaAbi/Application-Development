@@ -2,51 +2,121 @@
 @inject IJSRuntime JS
 
 <div class="rich-editor-container">
-    <h3>Write Content</h3>
-    <div id="editor" style="height: 200px; background: white;"></div>
-    <button @onclick="Save">Save</button>
-    <pre>@HtmlContent</pre>
+    <div id="editor" style="height: 300px; background: white;"></div>
 </div>
 
 @code {
-    private string HtmlContent = "";
+private string HtmlContent = "";
+private string PreviousContent = "";
 
-    [Parameter]
-    public string Content { get; set; } = string.Empty;
+[Parameter]
+public string Content { get; set; } = string.Empty;
 
-    [Parameter]
-    public EventCallback<string> ContentChanged { get; set; }
+[Parameter]
+public EventCallback<string> ContentChanged { get; set; }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+protected override async Task OnParametersSetAsync()
+{
+    // Check if the Content parameter has changed (e.g., switching entries)
+    if (Content != PreviousContent)
     {
-        if (firstRender)
+        PreviousContent = Content;
+            
+        // Update the editor with the new content
+        try
         {
-            try
-            {
-                // Initialize Quill editor
-                await JS.InvokeVoidAsync("initQuill", "editor");
-                System.Diagnostics.Debug.WriteLine("Quill editor initialized");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}");
-            }
+            await LoadContentAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading content in OnParametersSetAsync: {ex.Message}");
         }
     }
+}
+
+protected override async Task OnAfterRenderAsync(bool firstRender)
+{
+    if (firstRender)
+    {
+        try
+        {
+            // Initialize Quill editor on first render
+            await JS.InvokeVoidAsync("initQuill", "editor");
+            System.Diagnostics.Debug.WriteLine("Quill editor initialized");
+                
+            // Load initial content
+            await LoadContentAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error initializing editor: {ex.Message}");
+        }
+    }
+}
+
+private async Task LoadContentAsync()
+{
+    try
+    {
+        if (!string.IsNullOrEmpty(Content))
+        {
+            await JS.InvokeVoidAsync("setQuillHtml", "editor", Content);
+            HtmlContent = Content;
+            System.Diagnostics.Debug.WriteLine($"Quill editor loaded with content: {Content.Substring(0, Math.Min(50, Content.Length))}...");
+        }
+        else
+        {
+            // Clear the editor for empty content
+            await JS.InvokeVoidAsync("setQuillHtml", "editor", "");
+            HtmlContent = "";
+            System.Diagnostics.Debug.WriteLine("Quill editor cleared (empty content)");
+        }
+    }
+    catch (Exception ex)
+    {
+        System.Diagnostics.Debug.WriteLine($"Error loading content: {ex.Message}");
+    }
+}
 
     private async Task Save()
     {
         try
         {
             // Get HTML from Quill editor
-            HtmlContent = await JS.InvokeAsync<string>("getQuillHtml");
+            HtmlContent = await JS.InvokeAsync<string>("getQuillHtml", "editor");
             Content = HtmlContent;
             await ContentChanged.InvokeAsync(Content);
-            System.Diagnostics.Debug.WriteLine($"Saved content: {HtmlContent}");
+            System.Diagnostics.Debug.WriteLine($"Saved content: {HtmlContent.Substring(0, Math.Min(50, HtmlContent.Length))}...");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error saving: {ex.Message}");
+        }
+    }
+
+    // Public method to get the current content from the editor
+    public async Task<string> GetContentAsync()
+    {
+        try
+        {
+            var content = await JS.InvokeAsync<string>("getQuillHtml", "editor");
+            return content ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting content: {ex.Message}");
+            return string.Empty;
+        }
+    }
+
+    // Public method to sync content to the parent component
+    public async Task SyncContentAsync()
+    {
+        var content = await GetContentAsync();
+        if (!string.IsNullOrEmpty(content))
+        {
+            Content = content;
+            await ContentChanged.InvokeAsync(content);
         }
     }
 }
@@ -54,22 +124,83 @@
 <style>
 .rich-editor-container {
     width: 100%;
-    padding: 1rem;
+    padding: 0;
 }
 
 /* Quill Snow Theme Customization */
 :deep(.ql-toolbar.ql-snow) {
-    border: 1px solid #ccc;
+    border: 1px solid #e0e0e0;
     border-radius: 4px 4px 0 0;
+    background-color: #fafafa;
+    padding: 8px;
 }
 
 :deep(.ql-container.ql-snow) {
-    border: 1px solid #ccc;
+    border: 1px solid #e0e0e0;
     border-radius: 0 0 4px 4px;
+    font-size: 16px;
 }
 
 :deep(.ql-editor) {
-    min-height: 200px;
-    font-family: "Poppins", sans-serif;
+    min-height: 300px;
+    padding: 16px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+}
+
+:deep(.ql-editor.ql-blank::before) {
+    font-style: italic;
+    color: #aaa;
+    content: "Start typing your thoughts...";
+}
+
+:deep(.ql-editor p) {
+    margin: 0.75rem 0;
+}
+
+:deep(.ql-editor strong) {
+    font-weight: 600;
+}
+
+:deep(.ql-editor em) {
+    font-style: italic;
+}
+
+:deep(.ql-editor u) {
+    text-decoration: underline;
+}
+
+:deep(.ql-editor ul),
+:deep(.ql-editor ol) {
+    padding-left: 2rem;
+    margin: 0.75rem 0;
+}
+
+:deep(.ql-editor li) {
+    margin: 0.5rem 0;
+}
+
+/* Dark mode support */
+:deep(.mud-dark .ql-toolbar.ql-snow) {
+    background-color: #303030 !important;
+    border-color: #424242 !important;
+}
+
+:deep(.mud-dark .ql-container.ql-snow) {
+    border-color: #424242 !important;
+}
+
+:deep(.mud-dark .ql-editor) {
+    background-color: #424242 !important;
+    color: #fff !important;
+}
+
+:deep(.mud-dark .ql-editor.ql-blank::before) {
+    color: #666 !important;
+}
+
+:deep(.mud-dark .ql-toolbar button:hover),
+:deep(.mud-dark .ql-toolbar button.ql-active) {
+    color: #64b5f6 !important;
 }
 </style>

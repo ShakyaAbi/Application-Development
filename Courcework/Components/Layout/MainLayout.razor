@@ -1,114 +1,129 @@
 ﻿@inherits LayoutComponentBase
 @inject NavigationManager Navigation
+@inject IAuthenticationService AuthService
+@inject IDialogService DialogService
 
 <MudThemeProvider Theme="@_customTheme" IsDarkMode="@_isDark" />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <CascadingValue Value="this">
-<MudLayout>
-    <MudAppBar Elevation="1" Color="Color.Primary">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
-        <MudText Typo="Typo.h6" Class="ml-2"><strong>Reflections</strong></MudText>
-        <MudSpacer />
-        <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Inherit" OnClick="@(() => Navigation.NavigateTo("/profile"))" />
-    </MudAppBar>
+    <MudLayout>
+        <MudAppBar Elevation="1" Color="Color.Primary">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
+            <MudText Typo="Typo.h6" Class="ml-2"><strong>Reflections</strong></MudText>
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Inherit" OnClick="@(() => Navigation.NavigateTo("/profile"))" />
+        </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" Elevation="1" Variant="DrawerVariant.Temporary">
-        <MudDrawerHeader>
-            <div>
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
-                    <MudText Typo="Typo.h6"><strong>Reflections</strong></MudText>
-                </MudStack>
-                <MudText Typo="Typo.caption" Class="muted">Capture your thoughts and moments</MudText>
+        <MudDrawer @bind-Open="_drawerOpen" Elevation="1" Variant="DrawerVariant.Temporary">
+            <MudDrawerHeader>
+                <div>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+                        <MudText Typo="Typo.h6"><strong>Reflections</strong></MudText>
+                    </MudStack>
+                    <MudText Typo="Typo.caption" Class="muted">Capture your thoughts and moments</MudText>
+                </div>
+            </MudDrawerHeader>
+            
+            <MudNavMenu>
+                @foreach (var item in _navItems.Where(x => x.Label != "Logout"))
+                {
+                    <MudNavLink Href="@item.Href" Icon="@item.Icon" Match="NavLinkMatch.All">
+                        @item.Label
+                    </MudNavLink>
+                }
+            </MudNavMenu>
+
+            <!-- ✅ LOGOUT - As NavLink Style -->
+            <div class="px-4 py-2">
+                <MudButton Variant="Variant.Text"
+                          Color="Color.Error"
+                          FullWidth="true"
+                          Class="d-flex justify-start"
+                          OnClick="@HandleLogout"
+                          StartIcon="@Icons.Material.Filled.Logout"
+                          Style="text-transform: none; font-weight: 500; padding: 8px 16px; justify-content: flex-start;">
+                    Logout
+                </MudButton>
             </div>
-        </MudDrawerHeader>
-        
-        <MudNavMenu>
-            @foreach (var item in _navItems)
-            {
-                <MudNavLink Href="@item.Href" Icon="@item.Icon" Match="NavLinkMatch.All">
-                    @item.Label
-                </MudNavLink>
-            }
-        </MudNavMenu>
 
-        <MudDivider Class="my-2" />
-        
-        <div class="px-4 py-2">
-            <MudText Typo="Typo.caption" Class="muted mb-2">Theme</MudText>
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
-                <MudIcon Icon="@(_isDark ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Size="Size.Small" />
-                <MudText Typo="Typo.caption">Dark Mode</MudText>
-                <MudSpacer />
-                <MudToggleIconButton Toggled="@_isDark" ToggledChanged="@((bool x) => ToggleTheme(x))" 
-                                     Icon="@Icons.Material.Filled.LightMode" ToggledIcon="@Icons.Material.Filled.DarkMode" 
-                                     Size="Size.Small" />
-            </MudStack>
-        </div>
-    </MudDrawer>
+            <MudDivider Class="my-2" />
+            
+            <div class="px-4 py-2">
+                <MudText Typo="Typo.caption" Class="muted mb-2">Theme</MudText>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+                    <MudIcon Icon="@(_isDark ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Size="Size.Small" />
+                    <MudText Typo="Typo.caption">Dark Mode</MudText>
+                    <MudSpacer />
+                    <MudToggleIconButton Toggled="@_isDark" ToggledChanged="@((bool x) => ToggleTheme(x))" 
+                                         Icon="@Icons.Material.Filled.LightMode" ToggledIcon="@Icons.Material.Filled.DarkMode" 
+                                         Size="Size.Small" />
+                </MudStack>
+            </div>
+        </MudDrawer>
 
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.False" Class="body-container">
-            @Body
-        </MudContainer>
-    </MudMainContent>
-</MudLayout>
+        <MudMainContent>
+            <MudContainer MaxWidth="MaxWidth.False" Class="body-container">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
 </CascadingValue>
 
 @code {
-    private bool _drawerOpen = false;
-    private bool _isDark = false;
-    private string _currentPageTitle = "Dashboard";
-    private bool _redirectedToLogin = false;
+private bool _drawerOpen = false;
+private bool _isDark = false;
+private string _currentPageTitle = "Dashboard";
+private bool _redirectedToLogin = false;
 
-    // Custom blue and white theme
-    private MudTheme _customTheme = new MudTheme()
+// Custom blue and white theme
+private MudTheme _customTheme = new MudTheme()
+{
+    PaletteLight = new PaletteLight
     {
-        PaletteLight = new PaletteLight
-        {
-            Primary = "#1976d2",
-            Secondary = "#64b5f6",
-            Tertiary = "#42a5f5",
-            Success = "#4caf50",
-            Warning = "#ff9800",
-            Error = "#f44336",
-            Info = "#2196f3",
-            Dark = "#212121"
-        },
-        PaletteDark = new PaletteDark
-        {
-            Primary = "#1976d2",
-            Secondary = "#64b5f6",
-            Tertiary = "#42a5f5",
-            Success = "#4caf50",
-            Warning = "#ff9800",
-            Error = "#f44336",
-            Info = "#2196f3",
-            Dark = "#1e1e1e"
-        }
-    };
-
-    private readonly List<NavItem> _navItems =
-    [
-        new("Dashboard", "/dashboard", Icons.Material.Filled.Dashboard),
-        new("Today", "/today", Icons.Material.Filled.EditCalendar),
-        new("Calendar", "/calendar", Icons.Material.Filled.Event),
-        new("Timeline", "/timeline", Icons.Material.Filled.ViewTimeline),
-        new("Profile", "/profile", Icons.Material.Filled.Person),
-        new("Logout", "/login", Icons.Material.Filled.Logout)
-    ];
-
-    protected override void OnInitialized()
+        Primary = "#1976d2",
+        Secondary = "#64b5f6",
+        Tertiary = "#42a5f5",
+        Success = "#4caf50",
+        Warning = "#ff9800",
+        Error = "#f44336",
+        Info = "#2196f3",
+        Dark = "#212121"
+    },
+    PaletteDark = new PaletteDark
     {
-        // Redirect to login on initial app load
-        var currentUri = Navigation.Uri;
-        if (!_redirectedToLogin && (currentUri.EndsWith("/") || currentUri.EndsWith("index.html")))
-        {
-            _redirectedToLogin = true;
-            Navigation.NavigateTo("/login", replace: true);
-        }
+        Primary = "#1976d2",
+        Secondary = "#64b5f6",
+        Tertiary = "#42a5f5",
+        Success = "#4caf50",
+        Warning = "#ff9800",
+        Error = "#f44336",
+        Info = "#2196f3",
+        Dark = "#1e1e1e"
     }
+};
+
+private readonly List<NavItem> _navItems =
+[
+    new("Dashboard", "/dashboard", Icons.Material.Filled.Dashboard),
+    new("Today", "/today", Icons.Material.Filled.EditCalendar),
+    new("Calendar", "/calendar", Icons.Material.Filled.Event),
+    new("Timeline", "/timeline", Icons.Material.Filled.ViewTimeline),
+    new("Profile", "/profile", Icons.Material.Filled.Person)
+    // ✅ Logout removed - handled separately with button
+];
+
+protected override void OnInitialized()
+{
+    // Redirect to login on initial app load
+    var currentUri = Navigation.Uri;
+    if (!_redirectedToLogin && (currentUri.EndsWith("/") || currentUri.EndsWith("index.html")))
+    {
+        _redirectedToLogin = true;
+        Navigation.NavigateTo("/login", replace: true);
+    }
+}
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 
@@ -116,6 +131,41 @@
     {
         _isDark = isDark;
         StateHasChanged();
+    }
+
+    
+    /// ✅ Handle logout - Show confirmation dialog and clear session
+    
+    private async Task HandleLogout()
+    {
+        try
+        {
+            // Show confirmation dialog
+            var parameters = new DialogParameters<ConfirmDialog>
+            {
+                { x => x.Title, "Confirm Logout" },
+                { x => x.Message, "Are you sure you want to logout? You will need to login again to access your journal." }
+            };
+
+            var dialog = await DialogService.ShowAsync<ConfirmDialog>("Confirm Logout", parameters);
+            var result = await dialog.Result;
+
+            // If user confirmed logout
+            if (!result.Canceled)
+            {
+                // ✅ CALL LOGOUT ASYNC TO CLEAR SESSION
+                await AuthService.LogoutAsync();
+                
+                System.Diagnostics.Debug.WriteLine("User logged out successfully");
+                
+                // ✅ REDIRECT TO LOGIN PAGE
+                Navigation.NavigateTo("/login", forceLoad: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Logout error: {ex.Message}");
+        }
     }
 
     public void UpdatePageTitle(string title)

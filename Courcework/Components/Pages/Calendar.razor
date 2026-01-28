@@ -1,6 +1,8 @@
 ﻿@page "/calendar"
 @inject IStorageService Storage
 @inject NavigationManager Navigation
+@inject IAuthenticationService AuthService
+@using Courcework.Enums
 
 <MudStack Spacing="4" Class="page-stack">
     <MudPaper Class="calendar-header" Elevation="3">
@@ -60,8 +62,8 @@
                             <MudText Typo="Typo.caption" Class="muted">@entry.Date.ToString("dddd, MMMM dd, yyyy")</MudText>
                         </div>
                         <MudStack Row="true" Spacing="1">
-                            <MudChip T="string" Value="@entry.Mood" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
-                                @(string.IsNullOrEmpty(entry.Mood) ? "—" : entry.Mood)
+                            <MudChip T="string" Value="@(entry.Mood?.ToString() ?? "")" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
+                                @(entry.Mood.HasValue ? entry.Mood.Value.ToString() : "—")
                             </MudChip>
                             @if (!string.IsNullOrEmpty(entry.SecondaryMood))
                             {
@@ -83,6 +85,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // ✅ CHECK AUTHENTICATION - MUST BE LOGGED IN
+        var currentUser = await AuthService.GetCurrentUserAsync();
+        if (currentUser == null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
         await Storage.InitializeAsync();
         _currentDate = DateOnly.FromDateTime(DateTime.Today);
         await LoadMonthEntries();

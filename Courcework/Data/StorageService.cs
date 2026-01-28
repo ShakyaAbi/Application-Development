@@ -3,10 +3,10 @@ using Courcework.Entities;
 
 namespace Courcework.Data
 {
-    /// <summary>
+    
     /// Simple data storage service using JSON files
     /// This provides persistence without requiring EF Core or SQLite packages
-    /// </summary>
+    
     public class StorageService
     {
         private readonly string _dataDir;
@@ -23,9 +23,9 @@ namespace Courcework.Data
             _tagsFile = Path.Combine(_dataDir, "tags.json");
         }
 
-        /// <summary>
+        
         /// Initialize storage (load from files)
-        /// </summary>
+        
         public async Task InitializeAsync()
         {
             if (_initialized) return;
@@ -93,25 +93,25 @@ namespace Courcework.Data
             await SaveTagsAsync();
         }
 
-        /// <summary>
+        
         /// Get entry by date
-        /// </summary>
+        
         public Task<JournalEntry?> GetEntryByDateAsync(DateOnly date)
         {
             return Task.FromResult(_entries.FirstOrDefault(e => e.Date == date));
         }
 
-        /// <summary>
+        
         /// Get all entries
-        /// </summary>
+        
         public Task<List<JournalEntry>> GetAllEntriesAsync()
         {
             return Task.FromResult(_entries.OrderByDescending(e => e.Date).ToList());
         }
 
-        /// <summary>
+        
         /// Get entries by month
-        /// </summary>
+        
         public Task<List<JournalEntry>> GetEntriesByMonthAsync(int year, int month)
         {
             return Task.FromResult(
@@ -121,9 +121,9 @@ namespace Courcework.Data
             );
         }
 
-        /// <summary>
+        
         /// Save or update entry
-        /// </summary>
+        
         public async Task SaveEntryAsync(JournalEntry entry)
         {
             try
@@ -145,9 +145,9 @@ namespace Courcework.Data
             }
         }
 
-        /// <summary>
+        
         /// Delete entry
-        /// </summary>
+        
         public async Task DeleteEntryAsync(Guid entryId)
         {
             try
@@ -166,17 +166,17 @@ namespace Courcework.Data
             }
         }
 
-        /// <summary>
+        
         /// Get all tags
-        /// </summary>
+        
         public Task<List<Tag>> GetAllTagsAsync()
         {
             return Task.FromResult(_tags.OrderBy(t => t.Name).ToList());
         }
 
-        /// <summary>
+        
         /// Get statistics
-        /// </summary>
+        
         public Task<(int TotalEntries, int CurrentStreak, int LongestStreak)> GetStatisticsAsync()
         {
             int totalEntries = _entries.Count;

@@ -1,4 +1,5 @@
 @page "/login"
+@layout EmptyLayout
 @inject IAuthenticationService AuthService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
@@ -186,7 +187,7 @@
             {
                 Snackbar.Add("Login successful!", Severity.Success);
                 await Task.Delay(500);
-                Navigation.NavigateTo("/", forceLoad: true);
+                Navigation.NavigateTo("/dashboard", forceLoad: true);
             }
             else
             {

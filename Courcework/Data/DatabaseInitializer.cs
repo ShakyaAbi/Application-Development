@@ -3,10 +3,10 @@ using Courcework.Entities;
 
 namespace Courcework.Data
 {
-    /// <summary>
+    
     /// Helper class for database initialization and migrations
     /// Ensures database is created and seed data is populated
-    /// </summary>
+    
     public class DatabaseInitializer
     {
         private readonly JournalDbContext _context;
@@ -16,9 +16,9 @@ namespace Courcework.Data
             _context = context;
         }
 
-        /// <summary>
+        
         /// Initialize the database - create tables and seed default data
-        /// </summary>
+        
         public async Task InitializeAsync()
         {
             try
@@ -37,6 +37,9 @@ namespace Courcework.Data
                 await EnsureSchemaAsync();
 
                 System.Diagnostics.Debug.WriteLine("Database schema verified and updated.");
+
+                // ? Ensure Users table exists
+                await EnsureUsersTableAsync();
 
                 // Seed default tags if none exist
                 if (!await _context.Tags.AnyAsync())
@@ -59,9 +62,9 @@ namespace Courcework.Data
             }
         }
 
-        /// <summary>
+        
         /// Ensure database schema is up to date (add missing columns)
-        /// </summary>
+        
         private async Task EnsureSchemaAsync()
         {
             try
@@ -122,6 +125,57 @@ namespace Courcework.Data
                     }
                 }
 
+                // ? Add UserId column if missing
+                if (!columnNames.Contains("UserId"))
+                {
+                    System.Diagnostics.Debug.WriteLine("Adding UserId column to JournalEntries...");
+                    command.CommandText = @"
+                        ALTER TABLE JournalEntries 
+                        ADD COLUMN UserId TEXT DEFAULT '';
+                    ";
+                    try
+                    {
+                        await command.ExecuteNonQueryAsync();
+                        System.Diagnostics.Debug.WriteLine("UserId column added successfully to JournalEntries.");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"UserId column may already exist in JournalEntries: {ex.Message}");
+                    }
+                }
+
+                // ? ADD USERID COLUMN TO TAGS TABLE
+                command.CommandText = @"
+                    PRAGMA table_info(Tags);
+                ";
+
+                reader = await command.ExecuteReaderAsync();
+                var tagColumnNames = new List<string>();
+                
+                while (await reader.ReadAsync())
+                {
+                    tagColumnNames.Add(reader["name"].ToString());
+                }
+                await reader.CloseAsync();
+
+                if (!tagColumnNames.Contains("UserId"))
+                {
+                    System.Diagnostics.Debug.WriteLine("Adding UserId column to Tags...");
+                    command.CommandText = @"
+                        ALTER TABLE Tags 
+                        ADD COLUMN UserId TEXT DEFAULT '';
+                    ";
+                    try
+                    {
+                        await command.ExecuteNonQueryAsync();
+                        System.Diagnostics.Debug.WriteLine("UserId column added successfully to Tags.");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"UserId column may already exist in Tags: {ex.Message}");
+                    }
+                }
+
                 await connection.CloseAsync();
             }
             catch (Exception ex)
@@ -131,27 +185,139 @@ namespace Courcework.Data
             }
         }
 
-        /// <summary>
-        /// Seed default tags on first run
-        /// </summary>
+        
+        /// Ensure Users table exists and has all required columns
+        
+        private async Task EnsureUsersTableAsync()
+        {
+            try
+            {
+                var connection = _context.Database.GetDbConnection();
+                await connection.OpenAsync();
+
+                using var command = connection.CreateCommand();
+
+                // Check if Users table exists
+                command.CommandText = @"
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name='Users';
+                ";
+
+                var result = await command.ExecuteScalarAsync();
+                
+                if (result == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("? Creating Users table...");
+                    
+                    // Create Users table
+                    command.CommandText = @"
+                        CREATE TABLE Users (
+                            Id TEXT PRIMARY KEY,
+                            Username TEXT NOT NULL UNIQUE,
+                            Email TEXT NOT NULL UNIQUE,
+                            FullName TEXT NOT NULL,
+                            PasswordHash TEXT NOT NULL,
+                            CreatedAt TEXT NOT NULL,
+                            LastLoginAt TEXT,
+                            IsActive INTEGER NOT NULL DEFAULT 1,
+                            PreferredTheme TEXT DEFAULT 'light'
+                        );
+                    ";
+                    
+                    await command.ExecuteNonQueryAsync();
+
+                    // Create indexes for faster queries
+                    command.CommandText = @"
+                        CREATE INDEX idx_users_username ON Users(Username);
+                        CREATE INDEX idx_users_email ON Users(Email);
+                    ";
+                    
+                    await command.ExecuteNonQueryAsync();
+                    System.Diagnostics.Debug.WriteLine("? Users table created successfully with indexes");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("? Users table already exists");
+                }
+
+                await connection.CloseAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"? Users table error: {ex.Message}");
+                throw;
+            }
+        }
+
+        
+        /// Seed pre-built default tags on first run
+        
         private async Task SeedDefaultTagsAsync()
         {
+            // ? COMPREHENSIVE PRE-BUILT TAGS LIST
             var defaultTags = new[]
             {
-                new Tag { Id = Guid.NewGuid(), Name = "Reflection", Color = "#1976d2" },
-                new Tag { Id = Guid.NewGuid(), Name = "Work", Color = "#64b5f6" },
+                // Work & Career
+                new Tag { Id = Guid.NewGuid(), Name = "Work", Color = "#1976d2" },
+                new Tag { Id = Guid.NewGuid(), Name = "Career", Color = "#1565c0" },
+                new Tag { Id = Guid.NewGuid(), Name = "Studies", Color = "#0d47a1" },
+                new Tag { Id = Guid.NewGuid(), Name = "Projects", Color = "#2196f3" },
+                new Tag { Id = Guid.NewGuid(), Name = "Planning", Color = "#42a5f5" },
+                
+                // Relationships
+                new Tag { Id = Guid.NewGuid(), Name = "Family", Color = "#e91e63" },
+                new Tag { Id = Guid.NewGuid(), Name = "Friends", Color = "#ec407a" },
+                new Tag { Id = Guid.NewGuid(), Name = "Relationships", Color = "#f06292" },
+                new Tag { Id = Guid.NewGuid(), Name = "Parenting", Color = "#f48fb1" },
+                
+                // Health & Fitness
+                new Tag { Id = Guid.NewGuid(), Name = "Health", Color = "#f44336" },
+                new Tag { Id = Guid.NewGuid(), Name = "Fitness", Color = "#e53935" },
+                new Tag { Id = Guid.NewGuid(), Name = "Exercise", Color = "#c62828" },
+                new Tag { Id = Guid.NewGuid(), Name = "Yoga", Color = "#d32f2f" },
+                new Tag { Id = Guid.NewGuid(), Name = "Meditation", Color = "#ef5350" },
+                new Tag { Id = Guid.NewGuid(), Name = "Self-care", Color = "#f44336" },
+                
+                // Personal Development
+                new Tag { Id = Guid.NewGuid(), Name = "Personal Growth", Color = "#7b1fa2" },
+                new Tag { Id = Guid.NewGuid(), Name = "Spirituality", Color = "#6a1b9a" },
+                new Tag { Id = Guid.NewGuid(), Name = "Reflection", Color = "#512da8" },
+                new Tag { Id = Guid.NewGuid(), Name = "Reading", Color = "#7e57c2" },
+                new Tag { Id = Guid.NewGuid(), Name = "Writing", Color = "#9575cd" },
+                
+                // Hobbies & Leisure
+                new Tag { Id = Guid.NewGuid(), Name = "Hobbies", Color = "#ff6f00" },
+                new Tag { Id = Guid.NewGuid(), Name = "Music", Color = "#e65100" },
+                new Tag { Id = Guid.NewGuid(), Name = "Cooking", Color = "#bf360c" },
+                new Tag { Id = Guid.NewGuid(), Name = "Shopping", Color = "#ff6f00" },
+                
+                // Travel & Nature
+                new Tag { Id = Guid.NewGuid(), Name = "Travel", Color = "#00897b" },
+                new Tag { Id = Guid.NewGuid(), Name = "Nature", Color = "#009688" },
+                new Tag { Id = Guid.NewGuid(), Name = "Vacation", Color = "#26a69a" },
+                
+                // Finance
+                new Tag { Id = Guid.NewGuid(), Name = "Finance", Color = "#fbc02d" },
+                
+                // Special Events
+                new Tag { Id = Guid.NewGuid(), Name = "Birthday", Color = "#ff4081" },
+                new Tag { Id = Guid.NewGuid(), Name = "Holiday", Color = "#d81b60" },
+                new Tag { Id = Guid.NewGuid(), Name = "Celebration", Color = "#f50057" },
+                
+                // Gratitude & Ideas
                 new Tag { Id = Guid.NewGuid(), Name = "Gratitude", Color = "#4caf50" },
-                new Tag { Id = Guid.NewGuid(), Name = "Ideas", Color = "#ff9800" },
-                new Tag { Id = Guid.NewGuid(), Name = "Health", Color = "#f44336" }
+                new Tag { Id = Guid.NewGuid(), Name = "Ideas", Color = "#ff9800" }
             };
 
             await _context.Tags.AddRangeAsync(defaultTags);
             await _context.SaveChangesAsync();
+            
+            System.Diagnostics.Debug.WriteLine($"? Seeded {defaultTags.Length} pre-built tags");
         }
 
-        /// <summary>
+        
         /// Migrate JSON data to SQLite (one-time migration)
-        /// </summary>
+        
         public async Task MigrateFromJsonAsync(StorageService jsonStorage)
         {
             try
@@ -193,10 +359,10 @@ namespace Courcework.Data
             }
         }
 
-        /// <summary>
+        
         /// Reset database (delete all data and recreate tables)
         /// WARNING: This is destructive!
-        /// </summary>
+        
         public async Task ResetDatabaseAsync()
         {
             try

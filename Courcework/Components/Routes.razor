@@ -1,20 +1,89 @@
-﻿<Router AppAssembly="typeof(MauiProgram).Assembly" PreferExactMatches="true">
+﻿@inject NavigationManager NavigationManager
+@inject IAuthenticationService AuthService
+
+<Router AppAssembly="typeof(MauiProgram).Assembly" PreferExactMatches="true">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        @if (!IsPublicPage(routeData.PageType.FullName))
+        {
+            @if (_isChecking)
+            {
+                <!-- Loading state while checking authentication -->
+                <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: white;">
+                    <div style="text-align: center;">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true"></MudProgressCircular>
+                    </div>
+                </div>
+            }
+            else if (!_isAuthenticated)
+            {
+                <!-- Not authenticated - redirect immediately -->
+                <script>
+                    window.location.replace("/login");
+                </script>
+            }
+            else
+            {
+                <!-- Authenticated - show the protected page -->
+                <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+            }
+        }
+        else
+        {
+            <!-- Public page - show without authentication check -->
+            <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.EmptyLayout)" />
+        }
     </Found>
     <NotFound>
-        <LayoutView Layout="typeof(Layout.MainLayout)">
+        @{
+            // Redirect to login on 404
+            if (!_isCheckingNotFound)
+            {
+                NavigationManager.NavigateTo("/login", replace: true);
+            }
+        }
+        <LayoutView Layout="typeof(Layout.EmptyLayout)">
             <div style="padding: 2rem; text-align: center;">
-                <MudText Typo="Typo.h4">Page Not Found</MudText>
-                <MudText Typo="Typo.body2">Sorry, the page you're looking for doesn't exist.</MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => NavigationManager.NavigateTo("/login"))" Class="mt-4">
-                    Return to Login
-                </MudButton>
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true"></MudProgressCircular>
             </div>
         </LayoutView>
     </NotFound>
 </Router>
 
 @code {
-    [Inject] NavigationManager NavigationManager { get; set; }
+    private bool _isAuthenticated = false;
+    private bool _isChecking = true;
+    private bool _isCheckingNotFound = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await Task.Delay(100); // Brief delay to allow rendering
+            
+            // Check if user is authenticated
+            var currentUser = await AuthService.GetCurrentUserAsync();
+            _isAuthenticated = currentUser != null;
+            
+            System.Diagnostics.Debug.WriteLine($"Auth check result: {(_isAuthenticated ? "Authenticated" : "Not Authenticated")}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Auth check error: {ex.Message}");
+            _isAuthenticated = false;
+        }
+        finally
+        {
+            _isChecking = false;
+            _isCheckingNotFound = false;
+            StateHasChanged();
+        }
+    }
+
+    private bool IsPublicPage(string pageType)
+    {
+        if (string.IsNullOrEmpty(pageType)) return false;
+        
+        // Only /login page is public - all others require authentication
+        return pageType.Contains("Login");
+    }
 }

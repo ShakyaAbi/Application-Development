@@ -1,9 +1,9 @@
 namespace Courcework.Common
 {
-    /// <summary>
+    
     /// Generic result wrapper for all service operations
     /// Provides success/failure status, data, and error messages
-    /// </summary>
+    
     public class ServiceResult<T>
     {
         public bool Success { get; set; }
