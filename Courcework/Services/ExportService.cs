@@ -4,21 +4,20 @@ using System.Text.RegularExpressions;
 
 namespace Courcework.Services
 {
-    /// <summary>
+    
     /// Service for exporting journal entries to various formats
-    /// </summary>
+    
     public interface IExportService
     {
         Task<ServiceResult<byte[]>> ExportToPdfAsync(List<JournalEntry> entries, string title = "Journal Export");
-        Task<ServiceResult<string>> ExportToCsvAsync(List<JournalEntry> entries);
         Task<ServiceResult<string>> ExportToJsonAsync(List<JournalEntry> entries);
     }
 
     public class ExportService : IExportService
     {
-        /// <summary>
+        
         /// Export entries to PDF format
-        /// </summary>
+        
         public async Task<ServiceResult<byte[]>> ExportToPdfAsync(List<JournalEntry> entries, string title = "Journal Export")
         {
             try
@@ -44,45 +43,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
-        /// Export entries to CSV format
-        /// </summary>
-        public async Task<ServiceResult<string>> ExportToCsvAsync(List<JournalEntry> entries)
-        {
-            try
-            {
-                if (entries == null || entries.Count == 0)
-                    return ServiceResult<string>.Fail("No entries to export");
-
-                var csv = new System.Text.StringBuilder();
-                
-                // Header
-                csv.AppendLine("Date,Title,Mood,Secondary Mood,Category,Tags,Word Count,Created At");
-                
-                // Data
-                foreach (var entry in entries.OrderBy(e => e.Date))
-                {
-                    var cleanContent = StripHtml(entry.Content);
-                    var wordCount = cleanContent.Split(new[] { ' ', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length;
-                    var tags = string.Join(";", entry.Tags);
-                    
-                    csv.AppendLine($"\"{entry.Date:yyyy-MM-dd}\",\"{EscapeCsv(entry.Title)}\",\"{entry.Mood}\",\"{entry.SecondaryMood}\",\"{entry.Category}\",\"{tags}\",{wordCount},\"{entry.CreatedAt:yyyy-MM-dd HH:mm:ss}\"");
-                }
-                
-                System.Diagnostics.Debug.WriteLine($"Exported {entries.Count} entries to CSV");
-                
-                return ServiceResult<string>.Ok(csv.ToString());
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"CSV Export error: {ex.Message}");
-                return ServiceResult<string>.Fail(ex.Message);
-            }
-        }
-
-        /// <summary>
+        
         /// Export entries to JSON format
-        /// </summary>
+        
         public async Task<ServiceResult<string>> ExportToJsonAsync(List<JournalEntry> entries)
         {
             try
@@ -106,9 +69,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Generate HTML content for PDF
-        /// </summary>
+        
         private string GeneratePdfHtml(List<JournalEntry> entries, string title)
         {
             var html = new System.Text.StringBuilder();
@@ -140,11 +103,12 @@ namespace Courcework.Services
                 html.AppendLine("<div class=\"entry\">");
                 html.AppendLine($"<div class=\"entry-date\">{entry.Date:MMMM dd, yyyy}</div>");
                 
+                
                 if (!string.IsNullOrEmpty(entry.Title))
                     html.AppendLine($"<div class=\"entry-title\">{System.Web.HttpUtility.HtmlEncode(entry.Title)}</div>");
                 
-                if (!string.IsNullOrEmpty(entry.Mood))
-                    html.AppendLine($"<div class=\"entry-mood\"><strong>Mood:</strong> {entry.Mood}{(!string.IsNullOrEmpty(entry.SecondaryMood) ? $", {entry.SecondaryMood}" : "")}</div>");
+                if (entry.Mood.HasValue)
+                    html.AppendLine($"<div class=\"entry-mood\"><strong>Mood:</strong> {entry.Mood.Value}{(!string.IsNullOrEmpty(entry.SecondaryMood) ? $", {entry.SecondaryMood}" : "")}</div>");
                 
                 if (entry.Tags.Count > 0)
                     html.AppendLine($"<div class=\"entry-tags\"><strong>Tags:</strong> {string.Join(", ", entry.Tags)}</div>");
@@ -154,6 +118,7 @@ namespace Courcework.Services
                 
                 var cleanContent = StripHtml(entry.Content);
                 html.AppendLine($"<div class=\"entry-content\">{System.Web.HttpUtility.HtmlEncode(cleanContent)}</div>");
+                
                 
                 html.AppendLine("</div>");
             }
@@ -170,12 +135,6 @@ namespace Courcework.Services
             var text = Regex.Replace(content, "<[^>]*>", " ");
             text = Regex.Replace(text, @"\s+", " ");
             return text.Trim();
-        }
-
-        private string EscapeCsv(string value)
-        {
-            if (string.IsNullOrEmpty(value)) return "";
-            return value.Replace("\"", "\"\"");
         }
     }
 }

@@ -182,3 +182,16 @@ window.destroyChart = (canvasId) => {
         delete charts[canvasId];
     }
 };
+
+// Download File Function for Blazor Export
+window.downloadFile = (bytes, fileName) => {
+    const blob = new Blob([new Uint8Array(bytes)], { type: 'application/octet-stream' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName || 'download';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+};

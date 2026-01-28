@@ -1,0 +1,39 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="@_customTheme" IsDarkMode="@_isDark" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="d-flex align-center justify-center" Style="min-height: 100vh;">
+    @Body
+</MudContainer>
+
+@code {
+    private bool _isDark = false;
+
+    private MudTheme _customTheme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#1976d2",
+            Secondary = "#64b5f6",
+            Tertiary = "#42a5f5",
+            Success = "#4caf50",
+            Warning = "#ff9800",
+            Error = "#f44336",
+            Info = "#2196f3",
+            Dark = "#212121"
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#1976d2",
+            Secondary = "#64b5f6",
+            Tertiary = "#42a5f5",
+            Success = "#4caf50",
+            Warning = "#ff9800",
+            Error = "#f44336",
+            Info = "#2196f3",
+            Dark = "#1e1e1e"
+        }
+    };
+}

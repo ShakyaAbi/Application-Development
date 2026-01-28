@@ -2,14 +2,15 @@ using Microsoft.EntityFrameworkCore;
 using Courcework.Common;
 using Courcework.Entities;
 using Courcework.Data;
+using Courcework.Enums;
 
 namespace Courcework.Services
 {
-    /// <summary>
+    
     /// Database access service using Entity Framework Core with SQLite
     /// Implements IStorageService with ServiceResult<T> for consistent error handling
     /// Directly accesses data through DbContext (simplified architecture)
-    /// </summary>
+    
     public class DatabaseStorageService : IStorageService
     {
         private readonly JournalDbContext _context;
@@ -23,17 +24,17 @@ namespace Courcework.Services
             _authService = authService;
         }
 
-        /// <summary>
+        
         /// Initialize the database on app startup
-        /// </summary>
+        
         public async Task InitializeAsync()
         {
             await _initializer.InitializeAsync();
         }
 
-        /// <summary>
+        
         /// Get entry by specific date (filtered by current user)
-        /// </summary>
+        
         public async Task<ServiceResult<JournalEntry?>> GetEntryByDateAsync(DateOnly date)
         {
             try
@@ -59,9 +60,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Get all entries ordered by date (newest first, filtered by current user)
-        /// </summary>
+        
         public async Task<ServiceResult<List<JournalEntry>>> GetAllEntriesAsync()
         {
             try
@@ -90,9 +91,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Get entries for a specific month (filtered by current user)
-        /// </summary>
+        
         public async Task<ServiceResult<List<JournalEntry>>> GetEntriesByMonthAsync(int year, int month)
         {
             try
@@ -122,9 +123,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Search entries by content (case-insensitive)
-        /// </summary>
+        
         public async Task<ServiceResult<List<JournalEntry>>> SearchEntriesAsync(string searchTerm)
         {
             try
@@ -149,15 +150,21 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Get entries by mood
-        /// </summary>
+        
         public async Task<ServiceResult<List<JournalEntry>>> GetEntriesByMoodAsync(string mood)
         {
             try
             {
+                // Try to parse mood string to enum
+                if (!Enum.TryParse<Mood>(mood, true, out var moodEnum))
+                {
+                    return ServiceResult<List<JournalEntry>>.Ok(new());
+                }
+
                 var entries = await _context.JournalEntries
-                    .Where(e => e.Mood == mood)
+                    .Where(e => e.Mood == moodEnum)
                     .OrderByDescending(e => e.Date)
                     .ToListAsync();
                 return ServiceResult<List<JournalEntry>>.Ok(entries);
@@ -169,9 +176,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Save or update an entry
-        /// </summary>
+        
         public async Task<ServiceResult<bool>> SaveEntryAsync(JournalEntry entry)
         {
             try
@@ -209,9 +216,8 @@ namespace Courcework.Services
                         entry.Tags = new();
                     }
                     
-                    // ? Ensure empty strings instead of null
+                    // ? Ensure empty strings instead of null (keep Mood as is - it's an enum)
                     entry.Title = entry.Title ?? string.Empty;
-                    entry.Mood = entry.Mood ?? string.Empty;
                     entry.SecondaryMood = entry.SecondaryMood ?? string.Empty;
                     entry.Category = entry.Category ?? string.Empty;
                     
@@ -222,7 +228,7 @@ namespace Courcework.Services
                 {
                     existing.Title = entry.Title ?? string.Empty;
                     existing.Content = entry.Content;
-                    existing.Mood = entry.Mood ?? string.Empty;
+                    existing.Mood = entry.Mood;  // Mood is now an enum
                     existing.SecondaryMood = entry.SecondaryMood ?? string.Empty;
                     existing.Category = entry.Category ?? string.Empty;
                     existing.Tags = entry.Tags ?? new();
@@ -245,9 +251,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Delete an entry by ID
-        /// </summary>
+        
         public async Task<ServiceResult<bool>> DeleteEntryAsync(Guid entryId)
         {
             try
@@ -270,9 +276,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Get all available tags (filtered by current user)
-        /// </summary>
+        
         public async Task<ServiceResult<List<Tag>>> GetAllTagsAsync()
         {
             try
@@ -302,9 +308,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Add a new tag
-        /// </summary>
+        
         public async Task<ServiceResult<Tag>> AddTagAsync(string name, string color = "#1976d2")
         {
             try
@@ -346,9 +352,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Get statistics about entries (totals, streaks) - filtered by current user
-        /// </summary>
+        
         public async Task<ServiceResult<(int TotalEntries, int CurrentStreak, int LongestStreak)>> GetStatisticsAsync()
         {
             try
@@ -438,9 +444,9 @@ namespace Courcework.Services
             return maxStreak;
         }
 
-        /// <summary>
+        
         /// Get count of entries for a specific date range - filtered by current user
-        /// </summary>
+        
         public async Task<ServiceResult<int>> GetEntryCountAsync(DateOnly startDate, DateOnly endDate)
         {
             try
@@ -464,9 +470,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Get total word count across all entries - filtered by current user
-        /// </summary>
+        
         public async Task<ServiceResult<int>> GetTotalWordCountAsync()
         {
             try
@@ -495,9 +501,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Helper method to safely get current user
-        /// </summary>
+        
         private async Task<User> GetCurrentUserSafeAsync()
         {
             try

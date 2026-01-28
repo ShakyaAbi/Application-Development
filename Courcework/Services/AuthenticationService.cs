@@ -7,10 +7,10 @@ using System.Text;
 
 namespace Courcework.Services
 {
-    /// <summary>
+    
     /// Authentication service implementation using SQLite
     /// Handles user registration, login, and password management
-    /// </summary>
+    
     public class AuthenticationService : IAuthenticationService
     {
         private readonly JournalDbContext _context;
@@ -30,9 +30,9 @@ namespace Courcework.Services
             _secureStorage = secureStorage;
         }
 
-        /// <summary>
+        
         /// Register a new user account
-        /// </summary>
+        
         public async Task<ServiceResult<string>> RegisterAsync(string username, string email, string fullName, string password)
         {
             try
@@ -98,9 +98,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Authenticate user with credentials
-        /// </summary>
+        
         public async Task<ServiceResult<string>> LoginAsync(string usernameOrEmail, string password)
         {
             try
@@ -148,9 +148,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Logout current user
-        /// </summary>
+        
         public async Task LogoutAsync()
         {
             try
@@ -170,9 +170,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Get current authenticated user
-        /// </summary>
+        
         public async Task<ServiceResult<User?>> GetCurrentUserAsync()
         {
             try
@@ -215,9 +215,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Validate password strength
-        /// </summary>
+        
         public async Task<ServiceResult<bool>> ValidatePasswordStrengthAsync(string password)
         {
             try
@@ -249,9 +249,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Change user password
-        /// </summary>
+        
         public async Task<ServiceResult<bool>> ChangePasswordAsync(string currentPassword, string newPassword)
         {
             try
@@ -285,9 +285,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Reset password with token
-        /// </summary>
+        
         public async Task<ServiceResult<bool>> ResetPasswordAsync(string token, string newPassword)
         {
             try
@@ -304,9 +304,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Check if user is authenticated
-        /// </summary>
+        
         public async Task<bool> IsAuthenticatedAsync()
         {
             if (_currentUser != null && !string.IsNullOrEmpty(_currentToken))
@@ -317,9 +317,9 @@ namespace Courcework.Services
             return !string.IsNullOrEmpty(token);
         }
 
-        /// <summary>
+        
         /// Get authentication token
-        /// </summary>
+        
         public async Task<ServiceResult<string>> GetTokenAsync()
         {
             if (!string.IsNullOrEmpty(_currentToken))
@@ -335,9 +335,9 @@ namespace Courcework.Services
 
         // ===== Helper Methods =====
 
-        /// <summary>
+        
         /// Hash password using PBKDF2
-        /// </summary>
+        
         private string HashPassword(string password)
         {
             using (var algorithm = new Rfc2898DeriveBytes(password, SaltSize, Iterations, HashAlgorithmName.SHA256))
@@ -349,9 +349,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Verify password against hash
-        /// </summary>
+        
         private bool VerifyPassword(string password, string hash)
         {
             try
@@ -378,9 +378,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Generate token with user claims
-        /// </summary>
+        
         private string GenerateToken(User user)
         {
             var claims = new Dictionary<string, object>
@@ -397,9 +397,9 @@ namespace Courcework.Services
             return Convert.ToBase64String(bytes);
         }
 
-        /// <summary>
+        
         /// Extract user ID from token
-        /// </summary>
+        
         private string? ExtractUserIdFromToken(string token)
         {
             try

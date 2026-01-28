@@ -3,10 +3,10 @@ using Courcework.Entities;
 
 namespace Courcework.Services
 {
-    /// <summary>
+    
     /// Interface for data storage operations
     /// Allows flexibility to switch between implementations (SQLite, JSON, etc.)
-    /// </summary>
+    
     public interface IStorageService
     {
         Task InitializeAsync();

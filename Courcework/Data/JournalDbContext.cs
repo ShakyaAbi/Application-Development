@@ -3,10 +3,10 @@ using Courcework.Entities;
 
 namespace Courcework.Data
 {
-    /// <summary>
+    
     /// Entity Framework Core DbContext for SQLite database
     /// Manages JournalEntry, Tag, and User entities
-    /// </summary>
+    
     public class JournalDbContext : DbContext
     {
         public DbSet<JournalEntry> JournalEntries { get; set; }

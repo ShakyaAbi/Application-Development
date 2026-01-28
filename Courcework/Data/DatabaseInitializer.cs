@@ -3,10 +3,10 @@ using Courcework.Entities;
 
 namespace Courcework.Data
 {
-    /// <summary>
+    
     /// Helper class for database initialization and migrations
     /// Ensures database is created and seed data is populated
-    /// </summary>
+    
     public class DatabaseInitializer
     {
         private readonly JournalDbContext _context;
@@ -16,9 +16,9 @@ namespace Courcework.Data
             _context = context;
         }
 
-        /// <summary>
+        
         /// Initialize the database - create tables and seed default data
-        /// </summary>
+        
         public async Task InitializeAsync()
         {
             try
@@ -62,9 +62,9 @@ namespace Courcework.Data
             }
         }
 
-        /// <summary>
+        
         /// Ensure database schema is up to date (add missing columns)
-        /// </summary>
+        
         private async Task EnsureSchemaAsync()
         {
             try
@@ -185,9 +185,9 @@ namespace Courcework.Data
             }
         }
 
-        /// <summary>
+        
         /// Ensure Users table exists and has all required columns
-        /// </summary>
+        
         private async Task EnsureUsersTableAsync()
         {
             try
@@ -249,9 +249,9 @@ namespace Courcework.Data
             }
         }
 
-        /// <summary>
+        
         /// Seed pre-built default tags on first run
-        /// </summary>
+        
         private async Task SeedDefaultTagsAsync()
         {
             // ? COMPREHENSIVE PRE-BUILT TAGS LIST
@@ -315,9 +315,9 @@ namespace Courcework.Data
             System.Diagnostics.Debug.WriteLine($"? Seeded {defaultTags.Length} pre-built tags");
         }
 
-        /// <summary>
+        
         /// Migrate JSON data to SQLite (one-time migration)
-        /// </summary>
+        
         public async Task MigrateFromJsonAsync(StorageService jsonStorage)
         {
             try
@@ -359,10 +359,10 @@ namespace Courcework.Data
             }
         }
 
-        /// <summary>
+        
         /// Reset database (delete all data and recreate tables)
         /// WARNING: This is destructive!
-        /// </summary>
+        
         public async Task ResetDatabaseAsync()
         {
             try

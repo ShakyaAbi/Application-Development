@@ -3,6 +3,7 @@
 @inject NavigationManager Navigation
 @inject IAuthenticationService AuthService
 @using System.Text.RegularExpressions
+@using Courcework.Enums
 @using System.Linq
 
 <MudStack Spacing="4" Class="page-stack">
@@ -51,117 +52,142 @@
             </MudStack>
 
             <!-- Filter Controls Row -->
-            <MudGrid Spacing="2">
+            <MudStack Spacing="3">
                 <!-- Mood Filter -->
-                <MudItem xs="12" sm="6" md="3">
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.caption" Class="filter-label"><strong>Mood (@_availableMoods.Count)</strong></MudText>
-                        @if (_availableMoods?.Count > 0)
-                        {
-                            <MudSelect T="string" 
-                                       Value="@_selectedMood"
-                                       ValueChanged="@OnMoodChanged"
-                                       Label="Filter by mood"
-                                       Variant="Variant.Outlined"
-                                       Clearable="true">
-                                @foreach (var mood in _availableMoods.OrderBy(m => m))
-                                {
-                                    <MudSelectItem T="string" Value="@mood">@mood</MudSelectItem>
-                                }
-                            </MudSelect>
-                        }
-                        else
-                        {
-                            <MudText Typo="Typo.body2" Class="muted">No moods in database</MudText>
-                        }
-                    </MudStack>
-                </MudItem>
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.body2"><strong>Mood (@_availableMoods.Count)</strong></MudText>
+                    @if (_availableMoods?.Count > 0)
+                    {
+                        <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                            @foreach (var mood in _availableMoods.OrderBy(m => m))
+                            {
+                                <MudButton Variant="@(_selectedMood == mood ? Variant.Filled : Variant.Outlined)" 
+                                           Color="Color.Primary" 
+                                           Size="Size.Small"
+                                           OnClick="@(async () => { _selectedMood = _selectedMood == mood ? "" : mood; await ApplyFilters(); })">
+                                    @mood
+                                </MudButton>
+                            }
+                            @if (!string.IsNullOrEmpty(_selectedMood))
+                            {
+                                <MudButton Variant="Variant.Text" 
+                                           Color="Color.Default" 
+                                           Size="Size.Small"
+                                           OnClick="@(async () => { _selectedMood = ""; await ApplyFilters(); })">
+                                    Clear
+                                </MudButton>
+                            }
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Class="muted">No moods in database</MudText>
+                    }
+                </MudStack>
 
                 <!-- Secondary Mood Filter -->
-                <MudItem xs="12" sm="6" md="3">
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.caption" Class="filter-label"><strong>Secondary (@_availableSecondaryMoods.Count)</strong></MudText>
-                        @if (_availableSecondaryMoods?.Count > 0)
-                        {
-                            <MudSelect T="string" 
-                                       Value="@_selectedSecondaryMood"
-                                       ValueChanged="@OnSecondaryMoodChanged"
-                                       Label="Filter by secondary"
-                                       Variant="Variant.Outlined"
-                                       Clearable="true">
-                                @foreach (var mood in _availableSecondaryMoods.OrderBy(m => m))
-                                {
-                                    <MudSelectItem T="string" Value="@mood">@mood</MudSelectItem>
-                                }
-                            </MudSelect>
-                        }
-                        else
-                        {
-                            <MudText Typo="Typo.body2" Class="muted">No secondary moods</MudText>
-                        }
-                    </MudStack>
-                </MudItem>
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.body2"><strong>Secondary Mood (@_availableSecondaryMoods.Count)</strong></MudText>
+                    @if (_availableSecondaryMoods?.Count > 0)
+                    {
+                        <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                            @foreach (var mood in _availableSecondaryMoods.OrderBy(m => m))
+                            {
+                                <MudButton Variant="@(_selectedSecondaryMood == mood ? Variant.Filled : Variant.Outlined)" 
+                                           Color="Color.Secondary" 
+                                           Size="Size.Small"
+                                           OnClick="@(async () => { _selectedSecondaryMood = _selectedSecondaryMood == mood ? "" : mood; await ApplyFilters(); })">
+                                    @mood
+                                </MudButton>
+                            }
+                            @if (!string.IsNullOrEmpty(_selectedSecondaryMood))
+                            {
+                                <MudButton Variant="Variant.Text" 
+                                           Color="Color.Default" 
+                                           Size="Size.Small"
+                                           OnClick="@(async () => { _selectedSecondaryMood = ""; await ApplyFilters(); })">
+                                    Clear
+                                </MudButton>
+                            }
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Class="muted">No secondary moods</MudText>
+                    }
+                </MudStack>
 
                 <!-- Tags Filter -->
-                <MudItem xs="12" sm="6" md="3">
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.caption" Class="filter-label"><strong>Tags (@_availableTags.Count)</strong></MudText>
-                        @if (_availableTags?.Count > 0)
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.body2"><strong>Tags (@_availableTags.Count)</strong></MudText>
+                    @if (_availableTags?.Count > 0)
+                    {
+                        <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                            @foreach (var tag in _availableTags.OrderBy(t => t.Name))
+                            {
+                                <MudButton Variant="@(_selectedTag == tag.Name ? Variant.Filled : Variant.Outlined)" 
+                                           Color="Color.Info" 
+                                           Size="Size.Small"
+                                           OnClick="@(async () => { _selectedTag = _selectedTag == tag.Name ? "" : tag.Name; await ApplyFilters(); })">
+                                    @tag.Name
+                                </MudButton>
+                            }
+                            @if (!string.IsNullOrEmpty(_selectedTag))
+                            {
+                                <MudButton Variant="Variant.Text" 
+                                           Color="Color.Default" 
+                                           Size="Size.Small"
+                                           OnClick="@(async () => { _selectedTag = ""; await ApplyFilters(); })">
+                                    Clear
+                                </MudButton>
+                            }
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Class="muted">No tags available</MudText>
+                    }
+                </MudStack>
+
+                <!-- Date Range Filter -->
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.body2"><strong>Date Range</strong></MudText>
+                    <MudButton Variant="Variant.Outlined" 
+                               Size="Size.Small"
+                               FullWidth="false"
+                               OnClick="@ToggleDatePicker"
+                               StartIcon="@Icons.Material.Filled.DateRange">
+                        @if (_showDatePicker)
                         {
-                            <MudSelect T="string" 
-                                       Value="@_selectedTag"
-                                       ValueChanged="@OnTagChanged"
-                                       Label="Filter by tag"
-                                       Variant="Variant.Outlined"
-                                       Clearable="true">
-                                @foreach (var tag in _availableTags)
-                                {
-                                    <MudSelectItem T="string" Value="@tag.Name">@tag.Name</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <span>@_startDate?.ToString("MMM dd") - @_endDate?.ToString("MMM dd")</span>
                         }
                         else
                         {
-                            <MudText Typo="Typo.body2" Class="muted">No tags available</MudText>
+                            <span>Select Dates</span>
                         }
-                    </MudStack>
-                </MudItem>
-
-                <!-- Date Range Filter -->
-                <MudItem xs="12" sm="6" md="3">
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.caption" Class="filter-label"><strong>Date Range</strong></MudText>
-                        <MudButton Variant="Variant.Outlined" 
-                                   Size="Size.Small"
-                                   FullWidth="true"
-                                   OnClick="@ToggleDatePicker"
-                                   StartIcon="@Icons.Material.Filled.DateRange">
-                            @if (_showDatePicker)
-                            {
-                                <span>@_startDate?.ToString("MMM dd") - @_endDate?.ToString("MMM dd")</span>
-                            }
-                            else
-                            {
-                                <span>Select Dates</span>
-                            }
-                        </MudButton>
-                    </MudStack>
-                </MudItem>
-            </MudGrid>
+                    </MudButton>
+                </MudStack>
+            </MudStack>
 
             <!-- Date Picker (Collapsible) -->
             @if (_showDatePicker)
             {
                 <MudDivider Class="my-2" />
                 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.End">
-                    <MudDatePicker Value="@_startDate"
-                                   ValueChanged="@(async (DateTime? value) => await OnStartDateChanged(value))"
-                                   Label="Start Date"
-                                   Variant="Variant.Outlined" />
-                    <MudDatePicker Value="@_endDate"
-                                   ValueChanged="@(async (DateTime? value) => await OnEndDateChanged(value))"
-                                   Label="End Date"
-                                   Variant="Variant.Outlined" />
+                    <MudTextField T="string"
+                                  Value="@_startDate?.ToString("yyyy-MM-dd")"
+                                  ValueChanged="@(async (string v) => await OnStartDateTextChanged(v))"
+                                  Label="Start Date"
+                                  Placeholder="yyyy-MM-dd"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" />
+                    <MudTextField T="string"
+                                  Value="@_endDate?.ToString("yyyy-MM-dd")"
+                                  ValueChanged="@(async (string v) => await OnEndDateTextChanged(v))"
+                                  Label="End Date"
+                                  Placeholder="yyyy-MM-dd"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" />
                     <MudButton Variant="Variant.Text"
                                Color="Color.Secondary"
                                Size="Size.Small"
@@ -178,19 +204,19 @@
                     <MudText Typo="Typo.caption" Class="filter-label">Active filters:</MudText>
                     @if (!string.IsNullOrEmpty(_selectedMood))
                     {
-                        <MudChip T="string" Color="Color.Primary" OnClose="@(async () => await OnMoodChanged(""))">
+                        <MudChip T="string" Color="Color.Primary" OnClose="@(async () => { _selectedMood = ""; await ApplyFilters(); })">
                             Mood: @_selectedMood
                         </MudChip>
                     }
                     @if (!string.IsNullOrEmpty(_selectedSecondaryMood))
                     {
-                        <MudChip T="string" Color="Color.Secondary" OnClose="@(async () => await OnSecondaryMoodChanged(""))">
+                        <MudChip T="string" Color="Color.Secondary" OnClose="@(async () => { _selectedSecondaryMood = ""; await ApplyFilters(); })">
                             Secondary: @_selectedSecondaryMood
                         </MudChip>
                     }
                     @if (!string.IsNullOrEmpty(_selectedTag))
                     {
-                        <MudChip T="string" Color="Color.Info" OnClose="@(async () => await OnTagChanged(""))">
+                        <MudChip T="string" Color="Color.Info" OnClose="@(async () => { _selectedTag = ""; await ApplyFilters(); })">
                             Tag: @_selectedTag
                         </MudChip>
                     }
@@ -247,10 +273,10 @@
                             <div>
                                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
                                     <MudText Typo="Typo.subtitle2"><strong>@entry.Date.ToString("MMM dd, yyyy")</strong></MudText>
-                                    @if (!string.IsNullOrEmpty(entry.Mood))
+                                    @if (entry.Mood.HasValue)
                                     {
-                                        <MudChip T="string" Value="@entry.Mood" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
-                                            @entry.Mood
+                                        <MudChip T="string" Value="@entry.Mood.Value.ToString()" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
+                                            @entry.Mood.Value.ToString()
                                         </MudChip>
                                     }
                                     @if (!string.IsNullOrEmpty(entry.SecondaryMood))
@@ -306,7 +332,11 @@
 
                             <!-- Footer -->
                             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="footer-section">
-                                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary" Class="open-button">
+                                <MudButton Variant="Variant.Text" 
+                                          Size="Size.Small" 
+                                          Color="Color.Primary" 
+                                          Class="open-button"
+                                          OnClick="@(() => ViewEntry(entry.Date))">
                                     View Entry
                                 </MudButton>
                                 <MudText Typo="Typo.caption" Class="muted">@GetTimeAgo(entry.UpdatedAt)</MudText>
@@ -398,7 +428,7 @@
                 _displayEntries = _allEntries.OrderByDescending(e => e.Date).ToList();
                 
                 // Debug mood values
-                var entriesWithMood = _allEntries.Where(e => !string.IsNullOrEmpty(e.Mood)).Count();
+                var entriesWithMood = _allEntries.Where(e => e.Mood.HasValue).Count();
                 System.Diagnostics.Debug.WriteLine($"  Entries with Mood: {entriesWithMood}/{_allEntries.Count}");
             }
             else
@@ -433,19 +463,19 @@
         }
     }
 
-    /// <summary>
+    
     /// Load unique moods from all journal entries in the database
-    /// </summary>
+    
     private async Task LoadAvailableMoods()
     {
         try
         {
             System.Diagnostics.Debug.WriteLine($"Loading moods from {_allEntries.Count} entries");
             
-            // Get all unique primary moods from entries
+            // Get all unique primary moods from entries (enum values)
             _availableMoods = _allEntries
-                .Where(e => !string.IsNullOrEmpty(e.Mood))
-                .Select(e => e.Mood!)
+                .Where(e => e.Mood.HasValue)
+                .Select(e => e.Mood.Value.ToString())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(m => m)
                 .ToList();
@@ -480,40 +510,35 @@
         }
     }
 
-    // Filter change handlers
     private async Task OnSearchChanged(string value)
     {
         _searchTerm = value ?? "";
         await ApplyFilters();
     }
 
-    private async Task OnMoodChanged(string value)
+    private async Task OnStartDateTextChanged(string value)
     {
-        _selectedMood = value ?? "";
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _startDate = null;
+        }
+        else if (DateTime.TryParse(value, out var date))
+        {
+            _startDate = date;
+        }
         await ApplyFilters();
     }
 
-    private async Task OnSecondaryMoodChanged(string value)
+    private async Task OnEndDateTextChanged(string value)
     {
-        _selectedSecondaryMood = value ?? "";
-        await ApplyFilters();
-    }
-
-    private async Task OnTagChanged(string value)
-    {
-        _selectedTag = value ?? "";
-        await ApplyFilters();
-    }
-
-    private async Task OnStartDateChanged(DateTime? value)
-    {
-        _startDate = value;
-        await ApplyFilters();
-    }
-
-    private async Task OnEndDateChanged(DateTime? value)
-    {
-        _endDate = value;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _endDate = null;
+        }
+        else if (DateTime.TryParse(value, out var date))
+        {
+            _endDate = date;
+        }
         await ApplyFilters();
     }
 
@@ -534,10 +559,14 @@
             }).ToList();
         }
 
+
         // Apply mood filter
         if (!string.IsNullOrEmpty(_selectedMood))
         {
-            filtered = filtered.Where(e => e.Mood == _selectedMood).ToList();
+            if (Enum.TryParse<Mood>(_selectedMood, true, out var selectedMoodEnum))
+            {
+                filtered = filtered.Where(e => e.Mood == selectedMoodEnum).ToList();
+            }
         }
 
         // Apply secondary mood filter
@@ -549,7 +578,7 @@
         // Apply tag filter
         if (!string.IsNullOrEmpty(_selectedTag))
         {
-            filtered = filtered.Where(e => e.Tags.Contains(_selectedTag)).ToList();
+            filtered = filtered.Where(e => e.Tags.Any(t => t.Equals(_selectedTag, StringComparison.OrdinalIgnoreCase))).ToList();
         }
 
         // Apply date range filter
@@ -570,9 +599,9 @@
         StateHasChanged();
     }
 
-    /// <summary>
+    
     /// Strips HTML tags and cleans up whitespace from content
-    /// </summary>
+    
     private string StripHtml(string content)
     {
         if (string.IsNullOrEmpty(content)) return "";
@@ -586,9 +615,9 @@
         return text.Trim();
     }
 
-    /// <summary>
+    
     /// Gets a clean text preview, stripping HTML tags
-    /// </summary>
+    
     private string GetPreview(string content)
     {
         if (string.IsNullOrEmpty(content)) return "";
@@ -605,9 +634,9 @@
         return cleanText;
     }
 
-    /// <summary>
+    
     /// Calculates actual word count excluding HTML tags
-    /// </summary>
+    
     private int GetWordCount(string content)
     {
         if (string.IsNullOrEmpty(content)) return 0;
@@ -651,6 +680,14 @@
         if (timeSpan.TotalHours < 24) return $"{(int)timeSpan.TotalHours}h ago";
         if (timeSpan.TotalDays < 7) return $"{(int)timeSpan.TotalDays}d ago";
         return dateTime.ToString("MMM dd");
+    }
+
+    
+    /// Navigate to the Today page with the selected date to view/edit the entry
+    
+    private void ViewEntry(DateOnly entryDate)
+    {
+        Navigation.NavigateTo($"/today?date={entryDate:yyyy-MM-dd}");
     }
 }
 

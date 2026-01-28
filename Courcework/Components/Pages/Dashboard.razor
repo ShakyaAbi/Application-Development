@@ -5,6 +5,7 @@
 @inject IExportService ExportService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
+@using Courcework.Enums
 
 <MudPaper Class="dashboard-hero" Elevation="4">
     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
@@ -80,6 +81,26 @@
                 <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Writing Habits</strong></MudText>
                 <div class="chart-container">
                     <canvas id="habitChart"></canvas>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <!-- ✅ Most Used Tags Chart -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="chart-paper" Elevation="3">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Most Used Tags</strong></MudText>
+                <div class="chart-container">
+                    <canvas id="tagsChart"></canvas>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <!-- ✅ Category Breakdown -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="chart-paper" Elevation="3">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Category Breakdown</strong></MudText>
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
                 </div>
             </MudPaper>
         </MudItem>
@@ -160,6 +181,20 @@
                             <MudText Typo="Typo.caption" Class="muted">average</MudText>
                         </MudStack>
                     </div>
+
+                    <MudDivider />
+
+                    <!-- ✅ MISSING DAYS STAT -->
+                    <div class="stat-row">
+                        <div class="stat-label">
+                            <MudIcon Icon="@Icons.Material.Filled.HighlightOff" Class="missing-icon" Style="color: #ff9800;"></MudIcon>
+                            <span>Missing Days</span>
+                        </div>
+                        <MudStack AlignItems="AlignItems.End">
+                            <MudText Typo="Typo.h5"><strong>@GetMissingDays()</strong></MudText>
+                            <MudText Typo="Typo.caption" Class="muted">skipped days</MudText>
+                        </MudStack>
+                    </div>
                 </MudStack>
             </MudPaper>
         </MudItem>
@@ -199,8 +234,8 @@
                                 </MudText>
                             </td>
                             <td>
-                                <MudChip T="string" Value="@entry.Mood" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" Class="mood-chip">
-                                    @(string.IsNullOrEmpty(entry.Mood) ? "—" : entry.Mood)
+                                <MudChip T="string" Value="@(entry.Mood?.ToString() ?? "")" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" Class="mood-chip">
+                                    @(entry.Mood.HasValue ? entry.Mood.Value.ToString() : "—")
                                 </MudChip>
                             </td>
                             <td>
@@ -218,27 +253,62 @@
         }
     </MudPaper>
 
-    <!-- ✅ Export Data Section -->
+    <!-- Export Data Section -->
     <MudPaper Class="export-section" Elevation="3">
-        <MudStack Spacing="2">
-            <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Export Your Data</strong></MudText>
-            <MudText Typo="Typo.body2" Class="muted">Download all your journal entries in your preferred format</MudText>
-            
-            <MudStack Row="true" Spacing="2" Class="mt-3">
+        <MudStack Spacing="3">
+            <!-- Header -->
+            <div>
+                <MudText Typo="Typo.subtitle1" GutterBottom="true"><strong>Export Your Journal Entries</strong></MudText>
+                <MudText Typo="Typo.body2" Class="muted">Download entries in your preferred format with optional date range filtering</MudText>
+            </div>
+
+            <!-- Date Range Selection -->
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string"
+                                  Label="From Date"
+                                  Value="@_exportFromDate?.ToString("yyyy-MM-dd")"
+                                  ValueChanged="@(async (string v) => await OnExportFromDateChanged(v))"
+                                  Placeholder="yyyy-MM-dd"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string"
+                                  Label="To Date"
+                                  Value="@_exportToDate?.ToString("yyyy-MM-dd")"
+                                  ValueChanged="@(async (string v) => await OnExportToDateChanged(v))"
+                                  Placeholder="yyyy-MM-dd"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+
+            <!-- Export Stats -->
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                <strong>Total entries: @GetEntriesInDateRange()</strong> | 
+                <strong>Words: @GetWordsInDateRange()</strong> | 
+                <em>@(string.IsNullOrEmpty(_exportMessage) ? "Select format and click export" : _exportMessage)</em>
+            </MudAlert>
+
+            <!-- Export Buttons -->
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                <!-- PDF Export -->
                 <MudButton Variant="Variant.Filled" 
-                          Color="Color.Primary" 
+                          Color="Color.Error" 
                           Size="Size.Medium"
-                          StartIcon="@Icons.Material.Filled.DownloadForOffline"
-                          OnClick="@(() => ExportData("json"))">
-                    Export as JSON
+                          StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                          OnClick="@(() => ExportData("pdf"))"
+                          Class="export-btn">
+                    Export as PDF
                 </MudButton>
-                
-                <MudButton Variant="Variant.Outlined" 
-                          Color="Color.Primary" 
+
+                <!-- Reset Dates -->
+                <MudButton Variant="Variant.Text" 
+                          Color="Color.Default" 
                           Size="Size.Medium"
-                          StartIcon="@Icons.Material.Filled.DownloadForOffline"
-                          OnClick="@(() => ExportData("csv"))">
-                    Export as CSV
+                          StartIcon="@Icons.Material.Filled.Refresh"
+                          OnClick="@ResetDateRange"
+                          Class="export-btn">
+                    Reset Dates
                 </MudButton>
             </MudStack>
         </MudStack>
@@ -408,16 +478,46 @@
 .mood-chip {
     border-radius: 6px !important;
 }
+
+/* ✅ EXPORT SECTION STYLES */
+.export-section {
+    padding: 1.75rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+:deep(.mud-dark .export-section) {
+    background-color: #424242 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.export-btn {
+    transition: all 0.3s ease;
+    min-width: 140px;
+}
+
+.export-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+
 </style>
 
 @code {
-    private int _totalEntries = 0;
-    private int _currentStreak = 0;
-    private int _longestStreak = 0;
-    private int _totalWords = 0;
-    private List<JournalEntry> _recentEntries = new();
-    private Dictionary<string, int> _moodStats = new();
-    private List<JournalEntry> _allEntries = new();
+private int _totalEntries = 0;
+private int _currentStreak = 0;
+private int _longestStreak = 0;
+private int _totalWords = 0;
+private List<JournalEntry> _recentEntries = new();
+private Dictionary<string, int> _moodStats = new();
+private List<JournalEntry> _allEntries = new();
+    
+// ✅ EXPORT RELATED FIELDS
+private DateTime? _exportFromDate = null;
+private DateTime? _exportToDate = null;
+private string _exportMessage = "";
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -448,6 +548,24 @@
                 var habitLabels = new[] { "Avg Words", "Entries/Month", "Consistency" };
                 var habitData = new[] { GetAverageWordsPerEntry(), GetEntriesPerMonth(), GetConsistencyScore() };
                 await JS.InvokeVoidAsync("createBarChart", "habitChart", habitLabels, habitData, "Writing Habits");
+
+                // ✅ CREATE MOST USED TAGS CHART
+                var tagStats = GetTopTags(10);
+                if (tagStats.Count > 0)
+                {
+                    var tagLabels = tagStats.Keys.ToList();
+                    var tagData = tagStats.Values.ToList();
+                    await JS.InvokeVoidAsync("createBarChart", "tagsChart", tagLabels, tagData, "Most Used Tags");
+                }
+
+                // ✅ CREATE CATEGORY BREAKDOWN CHART
+                var categoryBreakdown = GetCategoryBreakdown();
+                if (categoryBreakdown.Count > 0)
+                {
+                    var categoryLabels = categoryBreakdown.Keys.ToList();
+                    var categoryData = categoryBreakdown.Values.ToList();
+                    await JS.InvokeVoidAsync("createMoodChart", "categoryChart", categoryLabels, categoryData, "doughnut");
+                }
 
                 System.Diagnostics.Debug.WriteLine("Charts created successfully");
             }
@@ -517,10 +635,10 @@
 
     private void LoadMoodStats()
     {
-        // Calculate mood statistics
+        // Calculate mood statistics from enum values
         _moodStats = _allEntries
-            .Where(e => !string.IsNullOrEmpty(e.Mood))
-            .GroupBy(e => e.Mood)
+            .Where(e => e.Mood.HasValue)
+            .GroupBy(e => e.Mood.Value.ToString())
             .OrderByDescending(g => g.Count())
             .ToDictionary(g => g.Key, g => g.Count());
     }
@@ -543,74 +661,246 @@
         return _totalEntries / monthsActive;
     }
 
+    
+    /// ✅ GET MISSING DAYS - Days without entries in the journaling period
+    
+    private int GetMissingDays()
+    {
+        if (_totalEntries == 0) return 0;
+        if (_allEntries.Count < 2) return 0;
+
+        var maxDate = _allEntries.Max(e => e.Date);
+        var minDate = _allEntries.Min(e => e.Date);
+        
+        // Convert DateOnly to DateTime for proper calculation
+        var maxDateTime = maxDate.ToDateTime(TimeOnly.MinValue);
+        var minDateTime = minDate.ToDateTime(TimeOnly.MinValue);
+        
+        // Total days between first and last entry (inclusive)
+        var totalDays = (int)(maxDateTime - minDateTime).TotalDays + 1;
+        
+        // Days with entries
+        var daysWithEntries = _allEntries.Select(e => e.Date).Distinct().Count();
+        
+        // Missing days = total days - days with entries
+        var missingDays = totalDays - daysWithEntries;
+        
+        System.Diagnostics.Debug.WriteLine($"Missing Days: Total={totalDays}, With Entries={daysWithEntries}, Missing={missingDays}");
+        return Math.Max(missingDays, 0);
+    }
+
     private int GetConsistencyScore()
     {
         if (_longestStreak == 0) return 0;
         return Math.Min((int)((_currentStreak / (double)_longestStreak) * 100), 100);
     }
 
-    /// <summary>
-    /// ✅ Export journal entries in requested format
-    /// </summary>
+    
+    /// ✅ GET TOP N MOST USED TAGS
+    
+    private Dictionary<string, int> GetTopTags(int count = 10)
+    {
+        var tagCounts = new Dictionary<string, int>();
+
+        // Count tag usage across all entries
+        foreach (var entry in _allEntries)
+        {
+            if (entry.Tags != null && entry.Tags.Count > 0)
+            {
+                foreach (var tag in entry.Tags)
+                {
+                    if (!string.IsNullOrEmpty(tag))
+                    {
+                        if (tagCounts.ContainsKey(tag))
+                            tagCounts[tag]++;
+                        else
+                            tagCounts[tag] = 1;
+                    }
+                }
+            }
+        }
+
+        // Return top N tags
+        return tagCounts
+            .OrderByDescending(x => x.Value)
+            .Take(count)
+            .ToDictionary(x => x.Key, x => x.Value);
+    }
+
+    
+    /// Get entries count by category (using the actual Category field from JournalEntry)
+    
+    private Dictionary<string, int> GetCategoryBreakdown()
+    {
+        var categoryUsage = new Dictionary<string, int>();
+
+        // Count entries for each category
+        foreach (var entry in _allEntries)
+        {
+            if (!string.IsNullOrEmpty(entry.Category))
+            {
+                if (categoryUsage.ContainsKey(entry.Category))
+                    categoryUsage[entry.Category]++;
+                else
+                    categoryUsage[entry.Category] = 1;
+            }
+        }
+
+        System.Diagnostics.Debug.WriteLine($"Categories: {string.Join(", ", categoryUsage.Select(x => $"{x.Key}={x.Value}"))}");
+        return categoryUsage;
+    }
+
+    
+    /// ✅ EXPORT JOURNAL ENTRIES IN REQUESTED FORMAT WITH DATE RANGE
+    
     private async Task ExportData(string format)
     {
         try
         {
-            if (_allEntries.Count == 0)
+            // ✅ GET ENTRIES FOR DATE RANGE
+            var entriesToExport = GetEntriesInRange();
+
+            if (entriesToExport.Count == 0)
             {
-                Snackbar.Add("No entries to export", Severity.Warning);
+                Snackbar.Add("No entries found for selected date range", Severity.Warning);
+                _exportMessage = "No entries in range";
                 return;
             }
 
-            if (format.ToLower() == "json")
+            switch (format.ToLower())
             {
-                var result = await ExportService.ExportToJsonAsync(_allEntries);
-                if (result.Success)
-                {
-                    var bytes = System.Text.Encoding.UTF8.GetBytes(result.Data);
-                    var fileName = $"journal_export_{DateTime.Now:yyyyMMdd_HHmmss}.json";
-                    await JS.InvokeVoidAsync("downloadFile", bytes, fileName);
-                    Snackbar.Add($"✅ Exported {_allEntries.Count} entries as JSON", Severity.Success);
-                    System.Diagnostics.Debug.WriteLine($"✅ Export successful: {fileName}");
-                }
-                else
-                {
-                    Snackbar.Add($"Export failed: {result.ErrorMessage}", Severity.Error);
-                    System.Diagnostics.Debug.WriteLine($"❌ Export error: {result.ErrorMessage}");
-                }
-            }
-            else if (format.ToLower() == "csv")
-            {
-                var result = await ExportService.ExportToCsvAsync(_allEntries);
-                if (result.Success)
-                {
-                    var bytes = System.Text.Encoding.UTF8.GetBytes(result.Data);
-                    var fileName = $"journal_export_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
-                    await JS.InvokeVoidAsync("downloadFile", bytes, fileName);
-                    Snackbar.Add($"✅ Exported {_allEntries.Count} entries as CSV", Severity.Success);
-                    System.Diagnostics.Debug.WriteLine($"✅ Export successful: {fileName}");
-                }
-                else
-                {
-                    Snackbar.Add($"Export failed: {result.ErrorMessage}", Severity.Error);
-                    System.Diagnostics.Debug.WriteLine($"❌ Export error: {result.ErrorMessage}");
-                }
-            }
-            else
-            {
-                Snackbar.Add("Unknown export format", Severity.Error);
+                case "pdf":
+                    await ExportAsPdf(entriesToExport);
+                    break;
+                default:
+                    Snackbar.Add("Unknown export format", Severity.Error);
+                    return;
             }
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error: {ex.Message}", Severity.Error);
-            System.Diagnostics.Debug.WriteLine($"❌ Exception: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Export Exception: {ex.Message}");
         }
     }
 
+    
+    /// Export as PDF format - Beautiful PDF with entries, moods, and tags
+    
+    private async Task ExportAsPdf(List<JournalEntry> entries)
+    {
+        var result = await ExportService.ExportToPdfAsync(entries, $"Journal Export - {DateTime.Now:MMM dd, yyyy}");
+        if (result.Success)
+        {
+            var fileName = $"journal_export_{DateTime.Now:yyyyMMdd_HHmmss}.html";
+            await JS.InvokeVoidAsync("downloadFile", result.Data, fileName);
+            _exportMessage = $"Exported {entries.Count} entries as PDF";
+            Snackbar.Add($"Successfully exported {entries.Count} entries as PDF", Severity.Success);
+        }
+        else
+        {
+            _exportMessage = "PDF export failed";
+            Snackbar.Add($"PDF export failed: {result.ErrorMessage}", Severity.Error);
+        }
+    }
 
+    
+    /// ✅ GET ENTRIES IN DATE RANGE
+    
+    private List<JournalEntry> GetEntriesInRange()
+    {
+        var entries = _allEntries.Where(e =>
+        {
+            // If no dates selected, include all entries
+            if (!_exportFromDate.HasValue && !_exportToDate.HasValue)
+                return true;
 
+            var entryDate = e.Date;
 
+            // Check from date
+            if (_exportFromDate.HasValue)
+            {
+                var fromDate = DateOnly.FromDateTime(_exportFromDate.Value);
+                if (entryDate < fromDate)
+                    return false;
+            }
+
+            // Check to date
+            if (_exportToDate.HasValue)
+            {
+                var toDate = DateOnly.FromDateTime(_exportToDate.Value);
+                if (entryDate > toDate)
+                    return false;
+            }
+
+            return true;
+        })
+        .OrderByDescending(e => e.Date)
+        .ToList();
+
+        return entries;
+    }
+
+    
+    /// ✅ GET COUNT OF ENTRIES IN DATE RANGE
+    
+    private int GetEntriesInDateRange()
+    {
+        return GetEntriesInRange().Count;
+    }
+
+    
+    /// ✅ GET WORD COUNT IN DATE RANGE
+    
+    private int GetWordsInDateRange()
+    {
+        return GetEntriesInRange()
+            .Sum(e => GetWordCount(e.Content));
+    }
+
+    
+    /// Handle From Date text input change
+    
+    private async Task OnExportFromDateChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _exportFromDate = null;
+        }
+        else if (DateTime.TryParse(value, out var date))
+        {
+            _exportFromDate = date;
+        }
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    
+    /// Handle To Date text input change
+    
+    private async Task OnExportToDateChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _exportToDate = null;
+        }
+        else if (DateTime.TryParse(value, out var date))
+        {
+            _exportToDate = date;
+        }
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    
+    /// Reset Date Range
+    
+    private void ResetDateRange()
+    {
+        _exportFromDate = null;
+        _exportToDate = null;
+        _exportMessage = "";
+    }
 
     private int GetWordCount(string content)
     {

@@ -2,9 +2,9 @@ using Courcework.Common;
 
 namespace Courcework.Services
 {
-    /// <summary>
+    
     /// Service for managing predefined journal categories
-    /// </summary>
+    
     public interface ICategoryService
     {
         Task<ServiceResult<List<string>>> GetAllCategoriesAsync();
@@ -13,9 +13,9 @@ namespace Courcework.Services
 
     public class CategoryService : ICategoryService
     {
-        /// <summary>
+        
         /// Predefined journal categories organized by type (simplified list)
-        /// </summary>
+        
         private static readonly Dictionary<string, List<string>> Categories = new()
         {
             { "Work", new List<string> { "Work", "Studies", "Projects", "Career" } },
@@ -25,9 +25,9 @@ namespace Courcework.Services
             { "Events", new List<string> { "Birthday", "Holiday", "Celebration", "Special" } }
         };
 
-        /// <summary>
+        
         /// Get all available categories
-        /// </summary>
+        
         public async Task<ServiceResult<List<string>>> GetAllCategoriesAsync()
         {
             try
@@ -48,9 +48,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Get categories by type (Positive, Neutral, Negative, etc.)
-        /// </summary>
+        
         public async Task<ServiceResult<List<string>>> GetCategoriesByTypeAsync(string type)
         {
             try
@@ -68,9 +68,9 @@ namespace Courcework.Services
             }
         }
 
-        /// <summary>
+        
         /// Get all category types/groups
-        /// </summary>
+        
         public List<string> GetCategoryTypes()
         {
             return Categories.Keys.OrderBy(x => x).ToList();

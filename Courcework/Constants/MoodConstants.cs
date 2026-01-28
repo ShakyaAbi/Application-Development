@@ -1,9 +1,9 @@
 namespace Courcework.Constants
 {
-    /// <summary>
+    
     /// ? Mood categories and classifications
     /// Organizes moods by emotional sentiment
-    /// </summary>
+    
     public static class MoodConstants
     {
         // ? POSITIVE MOODS
@@ -36,9 +36,9 @@ namespace Courcework.Constants
             "Anxious"
         };
 
-        /// <summary>
+        
         /// Get all moods organized by category
-        /// </summary>
+        
         public static Dictionary<string, string[]> GetMoodsByCategory()
         {
             return new Dictionary<string, string[]>
@@ -49,9 +49,9 @@ namespace Courcework.Constants
             };
         }
 
-        /// <summary>
+        
         /// Get all moods as a flat list
-        /// </summary>
+        
         public static string[] GetAllMoods()
         {
             return PositiveMoods
@@ -60,9 +60,9 @@ namespace Courcework.Constants
                 .ToArray();
         }
 
-        /// <summary>
+        
         /// Get color for mood category
-        /// </summary>
+        
         public static string GetCategoryColor(string category)
         {
             return category switch
@@ -74,9 +74,9 @@ namespace Courcework.Constants
             };
         }
 
-        /// <summary>
+        
         /// Get mood category for a mood
-        /// </summary>
+        
         public static string GetMoodCategory(string mood)
         {
             if (PositiveMoods.Contains(mood)) return "Positive";
